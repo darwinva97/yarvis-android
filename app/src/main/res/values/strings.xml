@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yarvis</string>
+    <string name="status_stopped">Servicio detenido</string>
+    <string name="status_listening">Escuchando…</string>
+    <string name="btn_start">Iniciar</string>
+    <string name="btn_stop">Detener</string>
+</resources>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout mínimo sin ConstraintLayout para reducir dependencias -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp"
+    android:background="@color/background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="48dp" />
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/status_stopped"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/recognized_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="20sp"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:minHeight="80dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/command_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="16sp"
+        android:textColor="#4CAF50"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <Button
+        android:id="@+id/toggle_button"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:text="@string/btn_start"
+        android:textSize="18sp" />
+
+    <Button
+        android:id="@+id/notification_permission_button"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:text="Activar lectura de notificaciones"
+        android:textSize="14sp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/battery_optimization_button"
+        android:layout_width="250dp"
+        android:layout_height="wrap_content"
+        android:text="Desactivar ahorro de batería"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
+</LinearLayout>

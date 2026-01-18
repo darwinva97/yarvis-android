@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground del launcher icon (adaptive icon) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#BB86FC"
+        android:pathData="M54,67c4.97,0 9,-4.03 9,-9V40c0,-4.97 -4.03,-9 -9,-9s-9,4.03 -9,9v18c0,4.97 4.03,9 9,9zM69.9,58c0,9 -7.62,15.3 -15.9,15.3S38.1,67 38.1,58H33c0,10.23 8.16,18.69 18,20.16V85h6v-6.84c9.84,-1.44 18,-9.9 18,-20.16h-5.1z" />
+</vector>

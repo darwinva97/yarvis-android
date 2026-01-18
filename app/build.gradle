@@ -1,0 +1,63 @@
+plugins {
+    id 'com.android.application'
+}
+
+configurations.all {
+    resolutionStrategy {
+        // Force all Kotlin stdlib artifacts to the same version
+        force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+        force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+    }
+}
+
+android {
+    namespace 'com.yarvis.assistant'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.yarvis.assistant"
+        minSdk 26          // Android 8.0 mínimo para Foreground Service moderno
+        targetSdk 34       // Android 14
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            minifyEnabled false
+            debuggable true
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Sin ViewBinding, DataBinding ni Compose
+    buildFeatures {
+        viewBinding false
+        dataBinding false
+        compose false
+        buildConfig true
+    }
+
+    // Excluir archivos innecesarios del APK
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    // Solo AndroidX core mínimo - sin librerías pesadas
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core:1.12.0'
+}
