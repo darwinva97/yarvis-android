@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.yarvis.assistant.chat.ChatActivity;
+import com.yarvis.assistant.settings.SettingsActivity;
 
 import java.util.Map;
 
@@ -67,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements
         Button notificationButton = findViewById(R.id.notification_permission_button);
         Button batteryButton = findViewById(R.id.battery_optimization_button);
         Button chatButton = findViewById(R.id.chat_button);
+        Button settingsButton = findViewById(R.id.settings_button);
 
         toggleButton.setOnClickListener(v -> onToggleClick());
         notificationButton.setOnClickListener(v ->
@@ -74,10 +76,16 @@ public class MainActivity extends AppCompatActivity implements
         batteryButton.setOnClickListener(v ->
                 startActivity(permissionManager.getBatteryOptimizationExclusionIntent()));
         chatButton.setOnClickListener(v -> openChat());
+        settingsButton.setOnClickListener(v -> openSettings());
     }
 
     private void openChat() {
         Intent intent = new Intent(this, ChatActivity.class);
+        startActivity(intent);
+    }
+
+    private void openSettings() {
+        Intent intent = new Intent(this, SettingsActivity.class);
         startActivity(intent);
     }
 

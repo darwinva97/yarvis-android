@@ -17,9 +17,35 @@
     <string name="status">Estado</string>
     <string name="image_preview">Vista previa de imagen</string>
     <string name="open_chat">Abrir chat</string>
+    <string name="open_settings">Configuración</string>
     <string name="no_messages">No hay mensajes aún</string>
     <string name="clear_confirm_title">Limpiar historial</string>
     <string name="clear_confirm_message">¿Estás seguro de que quieres eliminar todo el historial de conversaciones?</string>
     <string name="cancel">Cancelar</string>
     <string name="confirm">Confirmar</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_section_connection">Conexión al Backend</string>
+    <string name="settings_agent_name">Nombre del Agente</string>
+    <string name="settings_backend_url">URL del Backend</string>
+    <string name="settings_backend_password">Contraseña</string>
+    <string name="settings_connect">Conectar al Backend</string>
+    <string name="settings_connect_description">Habilita la conexión con el servidor</string>
+    <string name="settings_save">Guardar Configuración</string>
+    <string name="settings_section_password">Cambiar Contraseña del Servidor</string>
+    <string name="settings_password_info">Cambiar la contraseña requiere estar conectado al servidor. La nueva contraseña se aplicará a todas las conexiones.</string>
+    <string name="settings_current_password">Contraseña Actual</string>
+    <string name="settings_new_password">Nueva Contraseña</string>
+    <string name="settings_confirm_password">Confirmar Nueva Contraseña</string>
+    <string name="settings_change_password">Cambiar Contraseña</string>
+    <string name="status_disconnected">Desconectado</string>
+    <string name="status_connected">Conectado</string>
+    <string name="status_connecting">Conectando…</string>
+    <string name="status_auth_failed">Autenticación fallida</string>
+    <string name="config_saved">Configuración guardada</string>
+    <string name="password_mismatch">Las contraseñas no coinciden</string>
+    <string name="password_empty">Completa todos los campos de contraseña</string>
+    <string name="password_changed">Contraseña cambiada exitosamente</string>
+    <string name="must_be_connected">Debes estar conectado para cambiar la contraseña</string>
 </resources>

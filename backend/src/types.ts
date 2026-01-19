@@ -20,7 +20,9 @@ export type ClientMessage =
   | { type: 'chat_message'; text: string; timestamp: number; sessionId?: string }  // Mensaje de chat escrito
   | { type: 'notification'; app: string; title: string; text: string }
   | { type: 'end_conversation'; sessionId: string; reason?: string }
-  | { type: 'ping' };
+  | { type: 'ping' }
+  | { type: 'auth'; password: string; agentName?: string }
+  | { type: 'change_password'; currentPassword: string; newPassword: string };
 
 // ==================== Contenido enriquecido para mostrar ====================
 
@@ -77,7 +79,9 @@ export type ServerMessage =
     }
   | { type: 'end_conversation'; sessionId: string; farewell?: string; reason: EndConversationReason }
   | { type: 'error'; message: string }
-  | { type: 'pong' };
+  | { type: 'pong' }
+  | { type: 'auth_response'; success: boolean; message?: string }
+  | { type: 'change_password_response'; success: boolean; message: string };
 
 export type EndConversationReason =
   | 'user_request'      // Usuario dijo "termina", "adiós", etc.
@@ -135,6 +139,30 @@ export interface WorkflowResponse {
   error?: string;
 }
 
+// ==================== Autenticación ====================
+
+export interface AuthMessage {
+  type: 'auth';
+  password: string;
+  agentName?: string;
+}
+
+export interface AuthResponse {
+  type: 'auth_response';
+  success: boolean;
+  message?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success: boolean;
+  message: string;
+}
+
 // ==================== Configuración del servidor ====================
 
 export interface ServerConfig {
@@ -144,4 +172,6 @@ export interface ServerConfig {
   sessionTimeout: number;      // Timeout de inactividad en ms
   mockMode: boolean;           // Usar cliente mock en lugar de webhook real
   mockDelay: number;           // Delay simulado en modo mock (ms)
+  password: string;            // Contraseña para autenticación de clientes
+  passwordFilePath: string;    // Archivo para persistir la contraseña
 }

@@ -60,6 +60,13 @@
             android:parentActivityName=".MainActivity"
             android:theme="@style/Theme.Yarvis" />
 
+        <!-- Activity de configuración -->
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.Yarvis" />
+
         <!-- Foreground Service para escuchar el micrófono -->
         <service
             android:name=".VoiceService"

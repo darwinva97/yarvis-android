@@ -80,4 +80,12 @@
         android:textSize="16sp"
         android:layout_marginTop="32dp" />
 
+    <Button
+        android:id="@+id/settings_button"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:text="@string/open_settings"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+
 </LinearLayout>

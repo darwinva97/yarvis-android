@@ -178,10 +178,14 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
 
         if (backendEnabled) {
             String serverUrl = serverConfig.getServerUrl();
+            String password = serverConfig.getPassword();
+            String agentName = serverConfig.getAgentName();
+
             webSocketClient = new YarvisWebSocketClient(serverUrl);
+            webSocketClient.setCredentials(password, agentName);
             webSocketClient.setListener(this);
             webSocketClient.connect();
-            Log.d(TAG, "WebSocket client initialized, connecting to: " + serverUrl);
+            Log.d(TAG, "WebSocket client initialized, connecting to: " + serverUrl + " as " + agentName);
         } else {
             Log.d(TAG, "Backend disabled, running in local mode");
         }
@@ -717,6 +721,27 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         if (farewell != null && !farewell.isEmpty()) {
             speak(farewell);
         }
+    }
+
+    @Override
+    public void onAuthResult(boolean success, String message) {
+        Log.i(TAG, "Auth result: " + success + " - " + message);
+        if (success) {
+            sendCommandBroadcast("AUTH_SUCCESS");
+            updateNotification(true);
+        } else {
+            sendCommandBroadcast("AUTH_FAILED: " + message);
+            // Si la autenticación falla, desconectarse
+            if (webSocketClient != null) {
+                webSocketClient.disconnect();
+            }
+        }
+    }
+
+    @Override
+    public void onPasswordChangeResult(boolean success, String message) {
+        Log.i(TAG, "Password change result: " + success + " - " + message);
+        // En el servicio no manejamos cambio de contraseña, solo en Settings
     }
 
     /**
