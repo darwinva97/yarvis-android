@@ -34,10 +34,10 @@ public class CommandProcessorManager {
     private final CommandParser parser;
 
     /**
-     * Clase interna para parsear comandos de texto.
-     * Demuestra: CLASE INTERNA con acceso a miembros de la clase externa
+     * Clase interna estática para parsear comandos de texto.
+     * Demuestra: CLASE INTERNA ESTÁTICA con patrones de diseño
      */
-    private class CommandParser {
+    private static class CommandParser {
 
         private static final Pattern MEDIA_PATTERN = Pattern.compile(
                 "(reproducir|play|pausar|pause|parar|stop|siguiente|next|anterior|previous|subir volumen|bajar volumen)",

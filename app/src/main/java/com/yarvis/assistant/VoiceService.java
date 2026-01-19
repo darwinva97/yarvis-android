@@ -536,10 +536,12 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
 
     /**
      * Verifica si el texto contiene comandos locales conocidos.
+     * Usa el CommandProcessorManager para comandos avanzados (POO).
      */
     private void checkForLocalCommands(String text) {
         String lowerText = text.toLowerCase(Locale.getDefault());
 
+        // Comandos especiales del asistente (wake word, saludos, despedidas)
         if (lowerText.contains("hey yarvis") || lowerText.contains("hola yarvis") ||
             lowerText.contains("oye yarvis")) {
             String response = "¿Sí? ¿En qué puedo ayudarte?";
@@ -565,15 +567,6 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
             return;
         }
 
-        if (lowerText.contains("qué hora es") || lowerText.contains("dime la hora")) {
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("h:mm a", Locale.getDefault());
-            String hora = sdf.format(new java.util.Date());
-            String response = "Son las " + hora;
-            sendCommandBroadcast("COMMAND: " + response);
-            speak(response);
-            return;
-        }
-
         // Comandos para terminar conversación (modo local)
         if (lowerText.contains("adiós") || lowerText.contains("adios") ||
             lowerText.contains("hasta luego") || lowerText.contains("chao") ||
@@ -583,6 +576,39 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
             speak(response);
             return;
         }
+
+        // Usar el sistema de procesamiento avanzado para otros comandos
+        // Demuestra: POLIMORFISMO, GENÉRICOS, CLASES ABSTRACTAS, INTERFACES FUNCIONALES
+        processWithCommandProcessor(text);
+    }
+
+    /**
+     * Procesa comandos usando el sistema POO avanzado.
+     * Utiliza: CommandProcessorManager, Repository<T>, Cache<K,V>,
+     * clases abstractas, interfaces funcionales (ResultCallback).
+     */
+    private void processWithCommandProcessor(String text) {
+        if (commandProcessorManager == null) {
+            Log.w(TAG, "Command processor not initialized");
+            return;
+        }
+
+        // ResultCallback es una INTERFAZ FUNCIONAL - se usa con lambda
+        ResultCallback<CommandResult> callback = result -> {
+            mainHandler.post(() -> {
+                if (result.success()) {
+                    Log.d(TAG, "Command processed successfully: " + result.message());
+                    sendCommandBroadcast("PROCESSED: " + result.message());
+                    speak(result.message());
+                } else {
+                    Log.w(TAG, "Command failed: " + result.message());
+                    // No hablar errores, solo loguear
+                }
+            });
+        };
+
+        // processText usa POLIMORFISMO para seleccionar el procesador correcto
+        commandProcessorManager.processText(text, callback);
     }
 
     // ==================== WebSocket Listener ====================
