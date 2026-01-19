@@ -13,8 +13,8 @@ public class ServerConfig {
     private static final String KEY_ENABLED = "backend_enabled";
 
     // Valores por defecto
-    private static final String DEFAULT_SERVER_URL = "ws://192.168.1.100:3000/ws";
-    private static final boolean DEFAULT_ENABLED = false;
+    private static final String DEFAULT_SERVER_URL = "ws://192.168.18.21:3000/ws";
+    private static final boolean DEFAULT_ENABLED = true;
 
     private final SharedPreferences prefs;
 

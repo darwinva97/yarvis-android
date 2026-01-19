@@ -14,10 +14,10 @@ const mockResponses: MockResponse[] = [
     patterns: [/hola/i, /buenos días/i, /buenas tardes/i, /buenas noches/i, /hi/i, /hello/i],
     response: {
       success: true,
-      response: '¡Hola! Soy Yarvis, tu asistente. ¿En qué puedo ayudarte hoy?',
+      response: '¡Hola! Soy Yarvis, tu asistente. ¿En qué puedo ayudarte hoy? desde el modo mock.',
       show: {
         type: 'text',
-        text: '¡Hola! ¿En qué puedo ayudarte?',
+        text: '¡Hola! ¿En qué puedo ayudarte? desde el modo mock.',
       },
     },
   },

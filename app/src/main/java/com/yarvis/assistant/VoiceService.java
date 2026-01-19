@@ -25,6 +25,8 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import com.yarvis.assistant.chat.ChatHistoryManager;
+import com.yarvis.assistant.chat.ChatMessageModel;
 import com.yarvis.assistant.network.ServerConfig;
 import com.yarvis.assistant.network.YarvisWebSocketClient;
 import com.yarvis.assistant.processing.CommandProcessorManager;
@@ -98,6 +100,9 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
     // Sistema de procesamiento de comandos (POO avanzado)
     private CommandProcessorManager commandProcessorManager;
 
+    // Historial de chat
+    private ChatHistoryManager chatHistoryManager;
+
     // Receiver para notificaciones del sistema
     private final BroadcastReceiver notificationReceiver = new BroadcastReceiver() {
         @Override
@@ -148,6 +153,7 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         Log.d(TAG, "Service created");
         mainHandler = new Handler(Looper.getMainLooper());
         serverConfig = new ServerConfig(this);
+        chatHistoryManager = ChatHistoryManager.getInstance(this);
         createNotificationChannel();
         initializeTTS();
         registerNotificationReceiver();
@@ -519,17 +525,46 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
     }
 
     /**
+     * Verifica si el texto comienza con el wake word "yarvis" o "jarvis".
+     */
+    private boolean startsWithWakeWord(String text) {
+        String lowerText = text.toLowerCase(Locale.getDefault()).trim();
+        return lowerText.startsWith("yarvis") || lowerText.startsWith("jarvis");
+    }
+
+    /**
+     * Elimina el wake word del inicio del texto.
+     */
+    private String removeWakeWord(String text) {
+        String lowerText = text.toLowerCase(Locale.getDefault()).trim();
+        if (lowerText.startsWith("yarvis")) {
+            return text.trim().substring(6).trim();
+        } else if (lowerText.startsWith("jarvis")) {
+            return text.trim().substring(6).trim();
+        }
+        return text;
+    }
+
+    /**
      * Procesa el texto reconocido.
-     * Si el backend está habilitado, envía al servidor.
+     * Solo envía al backend si comienza con "yarvis" o "jarvis".
      * Si no, procesa localmente.
      */
     private void processVoiceCommand(String text) {
-        if (backendEnabled && webSocketClient != null && webSocketClient.isConnected()) {
-            // Enviar al backend
-            webSocketClient.sendVoiceCommand(text);
-            Log.d(TAG, "Sent to backend: " + text);
+        if (backendEnabled && webSocketClient != null && webSocketClient.isConnected() && startsWithWakeWord(text)) {
+            // Eliminar wake word y enviar al backend
+            String command = removeWakeWord(text);
+            if (!command.isEmpty()) {
+                webSocketClient.sendVoiceCommand(command);
+                Log.d(TAG, "Sent to backend: " + command);
+            } else {
+                // Solo dijo "yarvis" sin comando
+                String response = "¿Sí? ¿En qué puedo ayudarte?";
+                speak(response);
+                Log.d(TAG, "Wake word only, no command");
+            }
         } else {
-            // Procesar localmente
+            // Procesar localmente si no tiene wake word o backend no disponible
             checkForLocalCommands(text);
         }
     }
@@ -633,6 +668,11 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
     public void onResponse(com.yarvis.assistant.network.WebSocketMessage.Response response) {
         Log.d(TAG, "Backend response: " + response.text);
         sendCommandBroadcast("BACKEND: " + response.text);
+
+        // Agregar respuesta al historial de chat
+        ChatMessageModel message = ChatMessageModel.fromAssistantResponse(response);
+        chatHistoryManager.addMessage(message);
+
         if (response.speak) {
             speak(response.text);
         }
