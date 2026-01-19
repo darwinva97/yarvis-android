@@ -1,0 +1,91 @@
+# Doxyfile para Yarvis Assistant
+# Genera documentación con diagramas UML automáticos
+
+#---------------------------------------------------------------------------
+# Proyecto
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "Yarvis Assistant"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "Asistente de voz para Android"
+OUTPUT_DIRECTORY       = build/documentation/doxygen
+OUTPUT_LANGUAGE        = Spanish
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+INPUT                  = app/src/main/java
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.java
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */build/* */test/*
+
+#---------------------------------------------------------------------------
+# Configuración de extracción
+#---------------------------------------------------------------------------
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+
+#---------------------------------------------------------------------------
+# Output HTML
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 300
+
+#---------------------------------------------------------------------------
+# Diagramas con Graphviz
+#---------------------------------------------------------------------------
+HAVE_DOT               = YES
+DOT_PATH               =
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+UML_LOOK               = YES
+UML_LIMIT_NUM_FIELDS   = 50
+DOT_UML_DETAILS        = YES
+DOT_WRAP_THRESHOLD     = 17
+TEMPLATE_RELATIONS     = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+GRAPHICAL_HIERARCHY    = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+DOT_GRAPH_MAX_NODES    = 100
+MAX_DOT_GRAPH_DEPTH    = 0
+DOT_MULTI_TARGETS      = YES
+
+#---------------------------------------------------------------------------
+# Otros formatos (deshabilitados)
+#---------------------------------------------------------------------------
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+
+#---------------------------------------------------------------------------
+# Preprocesador
+#---------------------------------------------------------------------------
+ENABLE_PREPROCESSING   = YES
+SEARCH_INCLUDES        = YES
+
+#---------------------------------------------------------------------------
+# Source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+#---------------------------------------------------------------------------
+# Optimización para Java
+#---------------------------------------------------------------------------
+OPTIMIZE_OUTPUT_JAVA   = YES
+JAVADOC_AUTOBRIEF      = YES

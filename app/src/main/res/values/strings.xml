@@ -5,4 +5,21 @@
     <string name="status_listening">Escuchando…</string>
     <string name="btn_start">Iniciar</string>
     <string name="btn_stop">Detener</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Conversación</string>
+    <string name="btn_back">Volver</string>
+    <string name="btn_clear">Limpiar historial</string>
+    <string name="btn_send">Enviar</string>
+    <string name="hint_message">Escribe un mensaje…</string>
+    <string name="see_more">Ver más</string>
+    <string name="voice_message">Mensaje de voz</string>
+    <string name="status">Estado</string>
+    <string name="image_preview">Vista previa de imagen</string>
+    <string name="open_chat">Abrir chat</string>
+    <string name="no_messages">No hay mensajes aún</string>
+    <string name="clear_confirm_title">Limpiar historial</string>
+    <string name="clear_confirm_message">¿Estás seguro de que quieres eliminar todo el historial de conversaciones?</string>
+    <string name="cancel">Cancelar</string>
+    <string name="confirm">Confirmar</string>
 </resources>

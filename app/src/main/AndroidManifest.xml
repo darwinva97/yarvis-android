@@ -23,6 +23,10 @@
     <!-- Solicitar exclusión de optimización de batería -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Permisos de red para WebSocket -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Indicar que la app usa micrófono -->
     <uses-feature
         android:name="android.hardware.microphone"
@@ -48,6 +52,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Activity de chat/historial -->
+        <activity
+            android:name=".chat.ChatActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.Yarvis" />
 
         <!-- Foreground Service para escuchar el micrófono -->
         <service

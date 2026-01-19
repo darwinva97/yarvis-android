@@ -12,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -24,14 +25,25 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import com.yarvis.assistant.network.ServerConfig;
+import com.yarvis.assistant.network.YarvisWebSocketClient;
+import com.yarvis.assistant.processing.CommandProcessorManager;
+import com.yarvis.assistant.processing.CommandResult;
+import com.yarvis.assistant.processing.ResultCallback;
+
 import java.util.ArrayList;
 import java.util.Locale;
 
 /**
  * Foreground Service para reconocimiento de voz continuo.
  * Usa SpeechRecognizer de Android para convertir voz a texto.
+ * Se conecta al backend por WebSocket para comandos complejos.
  */
-public class VoiceService extends Service {
+public class VoiceService extends Service implements YarvisWebSocketClient.ConnectionListener {
+
+    // Estado de conversación
+    private boolean inConversation = false;
+    private String currentSessionId = null;
 
     private static final String TAG = "VoiceService";
 
@@ -43,8 +55,10 @@ public class VoiceService extends Service {
     public static final String ACTION_SPEECH_RESULT = "com.yarvis.assistant.SPEECH_RESULT";
     public static final String ACTION_SPEECH_PARTIAL = "com.yarvis.assistant.SPEECH_PARTIAL";
     public static final String ACTION_COMMAND_DETECTED = "com.yarvis.assistant.COMMAND_DETECTED";
+    public static final String ACTION_CONNECTION_STATUS = "com.yarvis.assistant.CONNECTION_STATUS";
     public static final String EXTRA_TEXT = "text";
     public static final String EXTRA_COMMAND = "command";
+    public static final String EXTRA_CONNECTED = "connected";
 
     // Configuración del canal de notificación
     private static final String CHANNEL_ID = "yarvis_voice_channel";
@@ -67,6 +81,23 @@ public class VoiceService extends Service {
     // Control de lectura de notificaciones
     private boolean readNotifications = true;
 
+    // Binder para comunicación con Activities
+    private final IBinder binder = new LocalBinder();
+
+    public class LocalBinder extends Binder {
+        public VoiceService getService() {
+            return VoiceService.this;
+        }
+    }
+
+    // WebSocket y configuración
+    private YarvisWebSocketClient webSocketClient;
+    private ServerConfig serverConfig;
+    private boolean backendEnabled = false;
+
+    // Sistema de procesamiento de comandos (POO avanzado)
+    private CommandProcessorManager commandProcessorManager;
+
     // Receiver para notificaciones del sistema
     private final BroadcastReceiver notificationReceiver = new BroadcastReceiver() {
         @Override
@@ -81,22 +112,26 @@ public class VoiceService extends Service {
             if (title == null) title = "";
             if (text == null) text = "";
 
-            // Construir mensaje para leer
-            StringBuilder message = new StringBuilder();
-            message.append("Notificación de ").append(app).append(". ");
-            if (!title.isEmpty()) {
-                message.append(title).append(". ");
-            }
-            if (!text.isEmpty()) {
-                message.append(text);
-            }
+            // Si el backend está habilitado, enviar la notificación
+            if (backendEnabled && webSocketClient != null && webSocketClient.isConnected()) {
+                webSocketClient.sendNotification(app, title, text);
+            } else {
+                // Comportamiento local: leer la notificación
+                StringBuilder message = new StringBuilder();
+                message.append("Notificación de ").append(app).append(". ");
+                if (!title.isEmpty()) {
+                    message.append(title).append(". ");
+                }
+                if (!text.isEmpty()) {
+                    message.append(text);
+                }
 
-            String fullMessage = message.toString();
-            Log.d(TAG, "Reading notification: " + fullMessage);
+                String fullMessage = message.toString();
+                Log.d(TAG, "Reading notification: " + fullMessage);
 
-            // Enviar a UI y hablar
-            sendCommandBroadcast("NOTIF: " + fullMessage);
-            speak(fullMessage);
+                sendCommandBroadcast("NOTIF: " + fullMessage);
+                speak(fullMessage);
+            }
         }
     };
 
@@ -112,9 +147,38 @@ public class VoiceService extends Service {
         super.onCreate();
         Log.d(TAG, "Service created");
         mainHandler = new Handler(Looper.getMainLooper());
+        serverConfig = new ServerConfig(this);
         createNotificationChannel();
         initializeTTS();
         registerNotificationReceiver();
+        initializeWebSocket();
+        initializeCommandProcessor();
+    }
+
+    /**
+     * Inicializa el sistema de procesamiento de comandos.
+     * Demuestra el uso de: Clases abstractas, Genéricos, Polimorfismo, etc.
+     */
+    private void initializeCommandProcessor() {
+        commandProcessorManager = CommandProcessorManager.getInstance(this);
+        Log.d(TAG, "Command processor manager initialized");
+    }
+
+    /**
+     * Inicializa la conexión WebSocket si está habilitada.
+     */
+    private void initializeWebSocket() {
+        backendEnabled = serverConfig.isEnabled();
+
+        if (backendEnabled) {
+            String serverUrl = serverConfig.getServerUrl();
+            webSocketClient = new YarvisWebSocketClient(serverUrl);
+            webSocketClient.setListener(this);
+            webSocketClient.connect();
+            Log.d(TAG, "WebSocket client initialized, connecting to: " + serverUrl);
+        } else {
+            Log.d(TAG, "Backend disabled, running in local mode");
+        }
     }
 
     /**
@@ -149,7 +213,6 @@ public class VoiceService extends Service {
                     @Override
                     public void onDone(String utteranceId) {
                         isSpeaking = false;
-                        // Reiniciar escucha después de hablar
                         restartListening();
                     }
 
@@ -172,7 +235,6 @@ public class VoiceService extends Service {
      */
     private void speak(String text) {
         if (ttsReady && tts != null) {
-            // Pausar escucha mientras habla para evitar feedback
             stopListening();
             isSpeaking = true;
             tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "yarvis_response");
@@ -191,7 +253,6 @@ public class VoiceService extends Service {
         if (ACTION_START.equals(action)) {
             startForegroundWithNotification();
             initializeSpeechRecognizer();
-            // startListening() se llama al final de initializeSpeechRecognizer()
         } else if (ACTION_STOP.equals(action)) {
             stopListening();
             stopSelf();
@@ -202,7 +263,14 @@ public class VoiceService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return binder;
+    }
+
+    /**
+     * Obtiene el cliente WebSocket para acceso externo.
+     */
+    public YarvisWebSocketClient getWebSocketClient() {
+        return webSocketClient;
     }
 
     @Override
@@ -210,6 +278,18 @@ public class VoiceService extends Service {
         super.onDestroy();
         Log.d(TAG, "Service destroyed");
         stopListening();
+
+        // Desconectar WebSocket
+        if (webSocketClient != null) {
+            webSocketClient.destroy();
+            webSocketClient = null;
+        }
+
+        // Limpiar procesador de comandos
+        if (commandProcessorManager != null) {
+            commandProcessorManager.shutdown();
+        }
+
         try {
             unregisterReceiver(notificationReceiver);
         } catch (IllegalArgumentException e) {
@@ -267,9 +347,13 @@ public class VoiceService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
+        String contentText = backendEnabled
+                ? "Escuchando... (Backend conectando)"
+                : "Escuchando... Di \"Hey Yarvis\"";
+
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Yarvis")
-                .setContentText("Escuchando... Di \"Hey Yarvis\"")
+                .setContentText(contentText)
                 .setSmallIcon(R.drawable.ic_mic)
                 .setContentIntent(pendingIntent)
                 .addAction(R.drawable.ic_stop, "Detener", stopPendingIntent)
@@ -287,6 +371,49 @@ public class VoiceService extends Service {
 
         isRunning = true;
         Log.d(TAG, "Foreground service started");
+    }
+
+    /**
+     * Actualiza la notificación con el estado de conexión.
+     */
+    private void updateNotification(boolean connected) {
+        if (!isRunning) return;
+
+        String contentText = backendEnabled
+                ? (connected ? "Escuchando... (Backend conectado)" : "Escuchando... (Backend desconectado)")
+                : "Escuchando... Di \"Hey Yarvis\"";
+
+        Intent notificationIntent = new Intent(this, MainActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this, 0, notificationIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Intent stopIntent = new Intent(this, VoiceService.class);
+        stopIntent.setAction(ACTION_STOP);
+
+        PendingIntent stopPendingIntent = PendingIntent.getService(
+                this, 1, stopIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Yarvis")
+                .setContentText(contentText)
+                .setSmallIcon(R.drawable.ic_mic)
+                .setContentIntent(pendingIntent)
+                .addAction(R.drawable.ic_stop, "Detener", stopPendingIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .build();
+
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID, notification);
+        }
     }
 
     /**
@@ -316,7 +443,6 @@ public class VoiceService extends Service {
 
             Log.d(TAG, "SpeechRecognizer initialized");
 
-            // Iniciar escucha después de que el reconocedor esté listo
             isListening = true;
             speechRecognizer.startListening(recognizerIntent);
             Log.d(TAG, "Started listening");
@@ -383,9 +509,35 @@ public class VoiceService extends Service {
     }
 
     /**
-     * Verifica si el texto contiene comandos conocidos.
+     * Envía broadcast de estado de conexión.
      */
-    private void checkForCommands(String text) {
+    private void sendConnectionBroadcast(boolean connected) {
+        Intent intent = new Intent(ACTION_CONNECTION_STATUS);
+        intent.putExtra(EXTRA_CONNECTED, connected);
+        intent.setPackage(getPackageName());
+        sendBroadcast(intent);
+    }
+
+    /**
+     * Procesa el texto reconocido.
+     * Si el backend está habilitado, envía al servidor.
+     * Si no, procesa localmente.
+     */
+    private void processVoiceCommand(String text) {
+        if (backendEnabled && webSocketClient != null && webSocketClient.isConnected()) {
+            // Enviar al backend
+            webSocketClient.sendVoiceCommand(text);
+            Log.d(TAG, "Sent to backend: " + text);
+        } else {
+            // Procesar localmente
+            checkForLocalCommands(text);
+        }
+    }
+
+    /**
+     * Verifica si el texto contiene comandos locales conocidos.
+     */
+    private void checkForLocalCommands(String text) {
         String lowerText = text.toLowerCase(Locale.getDefault());
 
         if (lowerText.contains("hey yarvis") || lowerText.contains("hola yarvis") ||
@@ -421,7 +573,94 @@ public class VoiceService extends Service {
             speak(response);
             return;
         }
+
+        // Comandos para terminar conversación (modo local)
+        if (lowerText.contains("adiós") || lowerText.contains("adios") ||
+            lowerText.contains("hasta luego") || lowerText.contains("chao") ||
+            lowerText.contains("termina") || lowerText.contains("eso es todo")) {
+            String response = "Hasta luego, que tengas un buen día.";
+            sendCommandBroadcast("COMMAND: " + response);
+            speak(response);
+            return;
+        }
     }
+
+    // ==================== WebSocket Listener ====================
+
+    @Override
+    public void onConnected() {
+        Log.i(TAG, "Backend connected");
+        updateNotification(true);
+        sendConnectionBroadcast(true);
+    }
+
+    @Override
+    public void onDisconnected() {
+        Log.i(TAG, "Backend disconnected");
+        inConversation = false;
+        currentSessionId = null;
+        updateNotification(false);
+        sendConnectionBroadcast(false);
+    }
+
+    @Override
+    public void onResponse(com.yarvis.assistant.network.WebSocketMessage.Response response) {
+        Log.d(TAG, "Backend response: " + response.text);
+        sendCommandBroadcast("BACKEND: " + response.text);
+        if (response.speak) {
+            speak(response.text);
+        }
+    }
+
+    @Override
+    public void onAction(String action, String params) {
+        Log.d(TAG, "Backend action: " + action + " params: " + params);
+        sendCommandBroadcast("ACTION: " + action);
+        // Aquí se pueden manejar acciones específicas como:
+        // - TURN_ON_LIGHT
+        // - PLAY_MUSIC
+        // - SET_ALARM
+        // etc.
+    }
+
+    @Override
+    public void onError(String message) {
+        Log.e(TAG, "Backend error: " + message);
+        sendCommandBroadcast("ERROR: " + message);
+    }
+
+    @Override
+    public void onConversationStarted(String sessionId, String greeting, com.yarvis.assistant.network.WebSocketMessage.ShowContent show) {
+        Log.i(TAG, "Conversation started: " + sessionId);
+        inConversation = true;
+        currentSessionId = sessionId;
+        sendCommandBroadcast("CONVERSATION_START: " + sessionId);
+
+        if (greeting != null && !greeting.isEmpty()) {
+            speak(greeting);
+        }
+    }
+
+    @Override
+    public void onConversationEnded(String sessionId, String farewell, String reason) {
+        Log.i(TAG, "Conversation ended: " + sessionId + " reason: " + reason);
+        inConversation = false;
+        currentSessionId = null;
+        sendCommandBroadcast("CONVERSATION_END: " + reason);
+
+        if (farewell != null && !farewell.isEmpty()) {
+            speak(farewell);
+        }
+    }
+
+    /**
+     * Verifica si hay una conversación activa.
+     */
+    public boolean isInConversation() {
+        return inConversation;
+    }
+
+    // ==================== Speech Listener ====================
 
     /**
      * Listener para eventos del SpeechRecognizer.
@@ -440,7 +679,6 @@ public class VoiceService extends Service {
 
         @Override
         public void onRmsChanged(float rmsdB) {
-            // Nivel de audio - se puede usar para visualización
         }
 
         @Override
@@ -481,8 +719,6 @@ public class VoiceService extends Service {
                     errorMessage = "Error: " + error;
             }
             Log.w(TAG, "Recognition error: " + errorMessage);
-
-            // Reiniciar escucha automáticamente
             restartListening();
         }
 
@@ -493,10 +729,8 @@ public class VoiceService extends Service {
                 String text = matches.get(0);
                 Log.d(TAG, "Final result: " + text);
                 sendBroadcast(ACTION_SPEECH_RESULT, text);
-                checkForCommands(text);
+                processVoiceCommand(text);
             }
-
-            // Reiniciar escucha para reconocimiento continuo
             restartListening();
         }
 

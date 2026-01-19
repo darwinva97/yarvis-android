@@ -88,3 +88,23 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Backend
+backend/dist/
+backend/node_modules/
+backend/.env
+backend/*.log
+
+# Environment files (secrets)
+.env
+.env.local
+.env.*.local
+
+# Package lock files (optional - remove if you want to commit them)
+# backend/package-lock.json
+
+# Editor directories
+.vscode/
+*.swp
+*.swo
+*~
