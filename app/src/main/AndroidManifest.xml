@@ -13,6 +13,7 @@
 
     <!-- Tipo específico de Foreground Service (requerido Android 14+) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Evitar que el sistema mate el servicio -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -73,6 +74,13 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Foreground Service para conexión WebSocket persistente -->
+        <service
+            android:name=".network.WebSocketService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- Servicio para escuchar notificaciones -->
         <service

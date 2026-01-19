@@ -1,34 +1,36 @@
 package com.yarvis.assistant.chat;
 
 import android.app.AlertDialog;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.yarvis.assistant.R;
-import com.yarvis.assistant.VoiceService;
 import com.yarvis.assistant.network.WebSocketMessage;
+import com.yarvis.assistant.network.WebSocketService;
+import com.yarvis.assistant.network.YarvisWebSocketClient;
 
 /**
  * Activity para mostrar el historial completo de conversaciones y chatear.
+ * Usa WebSocketService para conexión persistente con el backend.
  */
 public class ChatActivity extends AppCompatActivity implements
         ChatHistoryManager.ChatHistoryListener,
-        ChatMessageAdapter.OnMessageClickListener {
+        ChatMessageAdapter.OnMessageClickListener,
+        WebSocketService.ConnectionStateListener,
+        YarvisWebSocketClient.ConnectionListener {
 
     private RecyclerView recyclerView;
     private ChatMessageAdapter adapter;
@@ -36,21 +38,30 @@ public class ChatActivity extends AppCompatActivity implements
     private ImageButton btnSend;
 
     private ChatHistoryManager historyManager;
-    private VoiceService voiceService;
+    private WebSocketService webSocketService;
     private boolean serviceBound = false;
+    private boolean isConnected = false;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
-            VoiceService.LocalBinder localBinder = (VoiceService.LocalBinder) binder;
-            voiceService = localBinder.getService();
+            WebSocketService.LocalBinder localBinder = (WebSocketService.LocalBinder) binder;
+            webSocketService = localBinder.getService();
             serviceBound = true;
+
+            // Registrar listeners
+            webSocketService.addConnectionStateListener(ChatActivity.this);
+            webSocketService.addMessageListener(ChatActivity.this);
+
+            isConnected = webSocketService.isAuthenticated();
+            updateSendButtonState();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            voiceService = null;
+            webSocketService = null;
             serviceBound = false;
+            isConnected = false;
         }
     };
 
@@ -113,18 +124,29 @@ public class ChatActivity extends AppCompatActivity implements
         inputMessage.setText("");
 
         // Crear mensaje local
-        String sessionId = serviceBound && voiceService != null ?
-                voiceService.getWebSocketClient().getActiveSessionId() : null;
+        String sessionId = null;
+        if (serviceBound && webSocketService != null) {
+            YarvisWebSocketClient client = webSocketService.getWebSocketClient();
+            if (client != null) {
+                sessionId = client.getActiveSessionId();
+            }
+        }
 
         ChatMessageModel message = ChatMessageModel.fromUserText(text, sessionId);
         historyManager.addMessage(message);
 
         // Enviar al backend
-        if (serviceBound && voiceService != null) {
-            voiceService.getWebSocketClient().sendChatMessage(text);
-            historyManager.updateMessageStatus(message.getId(), ChatMessageModel.MessageStatus.SENT);
+        if (serviceBound && webSocketService != null && isConnected) {
+            YarvisWebSocketClient client = webSocketService.getWebSocketClient();
+            if (client != null) {
+                client.sendChatMessage(text);
+                historyManager.updateMessageStatus(message.getId(), ChatMessageModel.MessageStatus.SENT);
+            } else {
+                historyManager.updateMessageStatus(message.getId(), ChatMessageModel.MessageStatus.ERROR);
+            }
         } else {
             historyManager.updateMessageStatus(message.getId(), ChatMessageModel.MessageStatus.ERROR);
+            Toast.makeText(this, "No hay conexión con el backend", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -151,6 +173,71 @@ public class ChatActivity extends AppCompatActivity implements
                 .setMessage(message.getText())
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private void updateSendButtonState() {
+        runOnUiThread(() -> {
+            btnSend.setEnabled(isConnected);
+            btnSend.setAlpha(isConnected ? 1.0f : 0.5f);
+        });
+    }
+
+    // ==================== WebSocketService.ConnectionStateListener ====================
+
+    @Override
+    public void onConnectionStateChanged(boolean connected, boolean authenticated) {
+        runOnUiThread(() -> {
+            isConnected = authenticated;
+            updateSendButtonState();
+        });
+    }
+
+    // ==================== YarvisWebSocketClient.ConnectionListener ====================
+
+    @Override
+    public void onConnected() {
+        // Manejado por onConnectionStateChanged
+    }
+
+    @Override
+    public void onDisconnected() {
+        // Manejado por onConnectionStateChanged
+    }
+
+    @Override
+    public void onResponse(WebSocketMessage.Response response) {
+        // Las respuestas se agregan al historial desde VoiceService
+        // Aquí solo actualizamos la UI si es necesario
+    }
+
+    @Override
+    public void onAction(String action, String params) {
+        // No usado en chat
+    }
+
+    @Override
+    public void onError(String message) {
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
+    }
+
+    @Override
+    public void onConversationStarted(String sessionId, String greeting, WebSocketMessage.ShowContent show) {
+        // No usado directamente en chat
+    }
+
+    @Override
+    public void onConversationEnded(String sessionId, String farewell, String reason) {
+        // No usado directamente en chat
+    }
+
+    @Override
+    public void onAuthResult(boolean success, String message) {
+        // Manejado por onConnectionStateChanged
+    }
+
+    @Override
+    public void onPasswordChangeResult(boolean success, String message) {
+        // No usado en chat
     }
 
     // ==================== ChatHistoryListener ====================
@@ -198,15 +285,17 @@ public class ChatActivity extends AppCompatActivity implements
     @Override
     protected void onStart() {
         super.onStart();
-        // Bind al servicio para enviar mensajes
-        Intent intent = new Intent(this, VoiceService.class);
+        // Bind al WebSocketService
+        Intent intent = new Intent(this, WebSocketService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (serviceBound) {
+        if (serviceBound && webSocketService != null) {
+            webSocketService.removeConnectionStateListener(this);
+            webSocketService.removeMessageListener(this);
             unbindService(serviceConnection);
             serviceBound = false;
         }

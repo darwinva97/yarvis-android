@@ -6,9 +6,11 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.Bundle;
@@ -28,6 +30,7 @@ import androidx.core.app.NotificationCompat;
 import com.yarvis.assistant.chat.ChatHistoryManager;
 import com.yarvis.assistant.chat.ChatMessageModel;
 import com.yarvis.assistant.network.ServerConfig;
+import com.yarvis.assistant.network.WebSocketService;
 import com.yarvis.assistant.network.YarvisWebSocketClient;
 import com.yarvis.assistant.processing.CommandProcessorManager;
 import com.yarvis.assistant.processing.CommandResult;
@@ -39,9 +42,11 @@ import java.util.Locale;
 /**
  * Foreground Service para reconocimiento de voz continuo.
  * Usa SpeechRecognizer de Android para convertir voz a texto.
- * Se conecta al backend por WebSocket para comandos complejos.
+ * Usa WebSocketService para conexión persistente con el backend.
  */
-public class VoiceService extends Service implements YarvisWebSocketClient.ConnectionListener {
+public class VoiceService extends Service implements
+        YarvisWebSocketClient.ConnectionListener,
+        WebSocketService.ConnectionStateListener {
 
     // Estado de conversación
     private boolean inConversation = false;
@@ -93,9 +98,35 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
     }
 
     // WebSocket y configuración
-    private YarvisWebSocketClient webSocketClient;
+    private WebSocketService webSocketService;
+    private boolean webSocketBound = false;
     private ServerConfig serverConfig;
     private boolean backendEnabled = false;
+    private boolean backendConnected = false;
+
+    private final ServiceConnection webSocketConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            WebSocketService.LocalBinder localBinder = (WebSocketService.LocalBinder) binder;
+            webSocketService = localBinder.getService();
+            webSocketBound = true;
+
+            // Registrar listeners
+            webSocketService.addConnectionStateListener(VoiceService.this);
+            webSocketService.addMessageListener(VoiceService.this);
+
+            backendConnected = webSocketService.isAuthenticated();
+            updateNotification(backendConnected);
+            Log.d(TAG, "Bound to WebSocketService, connected: " + backendConnected);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            webSocketService = null;
+            webSocketBound = false;
+            backendConnected = false;
+        }
+    };
 
     // Sistema de procesamiento de comandos (POO avanzado)
     private CommandProcessorManager commandProcessorManager;
@@ -118,8 +149,11 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
             if (text == null) text = "";
 
             // Si el backend está habilitado, enviar la notificación
-            if (backendEnabled && webSocketClient != null && webSocketClient.isConnected()) {
-                webSocketClient.sendNotification(app, title, text);
+            if (backendEnabled && backendConnected && webSocketBound && webSocketService != null) {
+                YarvisWebSocketClient client = webSocketService.getWebSocketClient();
+                if (client != null) {
+                    client.sendNotification(app, title, text);
+                }
             } else {
                 // Comportamiento local: leer la notificación
                 StringBuilder message = new StringBuilder();
@@ -157,7 +191,7 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         createNotificationChannel();
         initializeTTS();
         registerNotificationReceiver();
-        initializeWebSocket();
+        bindToWebSocketService();
         initializeCommandProcessor();
     }
 
@@ -171,21 +205,18 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
     }
 
     /**
-     * Inicializa la conexión WebSocket si está habilitada.
+     * Se conecta al WebSocketService para usar la conexión persistente.
      */
-    private void initializeWebSocket() {
+    private void bindToWebSocketService() {
         backendEnabled = serverConfig.isEnabled();
 
         if (backendEnabled) {
-            String serverUrl = serverConfig.getServerUrl();
-            String password = serverConfig.getPassword();
-            String agentName = serverConfig.getAgentName();
-
-            webSocketClient = new YarvisWebSocketClient(serverUrl);
-            webSocketClient.setCredentials(password, agentName);
-            webSocketClient.setListener(this);
-            webSocketClient.connect();
-            Log.d(TAG, "WebSocket client initialized, connecting to: " + serverUrl + " as " + agentName);
+            // Iniciar y bindear al WebSocketService
+            Intent wsIntent = new Intent(this, WebSocketService.class);
+            wsIntent.setAction(WebSocketService.ACTION_START);
+            startService(wsIntent);
+            bindService(wsIntent, webSocketConnection, Context.BIND_AUTO_CREATE);
+            Log.d(TAG, "Binding to WebSocketService");
         } else {
             Log.d(TAG, "Backend disabled, running in local mode");
         }
@@ -280,7 +311,17 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
      * Obtiene el cliente WebSocket para acceso externo.
      */
     public YarvisWebSocketClient getWebSocketClient() {
-        return webSocketClient;
+        if (webSocketBound && webSocketService != null) {
+            return webSocketService.getWebSocketClient();
+        }
+        return null;
+    }
+
+    /**
+     * Obtiene el WebSocketService.
+     */
+    public WebSocketService getWebSocketService() {
+        return webSocketService;
     }
 
     @Override
@@ -289,10 +330,12 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         Log.d(TAG, "Service destroyed");
         stopListening();
 
-        // Desconectar WebSocket
-        if (webSocketClient != null) {
-            webSocketClient.destroy();
-            webSocketClient = null;
+        // Desconectar del WebSocketService (pero no destruirlo)
+        if (webSocketBound && webSocketService != null) {
+            webSocketService.removeConnectionStateListener(this);
+            webSocketService.removeMessageListener(this);
+            unbindService(webSocketConnection);
+            webSocketBound = false;
         }
 
         // Limpiar procesador de comandos
@@ -555,11 +598,12 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
      * Si no, procesa localmente.
      */
     private void processVoiceCommand(String text) {
-        if (backendEnabled && webSocketClient != null && webSocketClient.isConnected() && startsWithWakeWord(text)) {
+        YarvisWebSocketClient client = getWebSocketClient();
+        if (backendEnabled && backendConnected && client != null && startsWithWakeWord(text)) {
             // Eliminar wake word y enviar al backend
             String command = removeWakeWord(text);
             if (!command.isEmpty()) {
-                webSocketClient.sendVoiceCommand(command);
+                client.sendVoiceCommand(command);
                 Log.d(TAG, "Sent to backend: " + command);
             } else {
                 // Solo dijo "yarvis" sin comando
@@ -650,13 +694,27 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         commandProcessorManager.processText(text, callback);
     }
 
+    // ==================== WebSocketService.ConnectionStateListener ====================
+
+    @Override
+    public void onConnectionStateChanged(boolean connected, boolean authenticated) {
+        Log.i(TAG, "Connection state changed: connected=" + connected + ", authenticated=" + authenticated);
+        backendConnected = authenticated;
+        updateNotification(authenticated);
+        sendConnectionBroadcast(authenticated);
+
+        if (!connected) {
+            inConversation = false;
+            currentSessionId = null;
+        }
+    }
+
     // ==================== WebSocket Listener ====================
 
     @Override
     public void onConnected() {
         Log.i(TAG, "Backend connected");
-        updateNotification(true);
-        sendConnectionBroadcast(true);
+        // Estado manejado por onConnectionStateChanged
     }
 
     @Override
@@ -664,8 +722,7 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
         Log.i(TAG, "Backend disconnected");
         inConversation = false;
         currentSessionId = null;
-        updateNotification(false);
-        sendConnectionBroadcast(false);
+        // Estado manejado por onConnectionStateChanged
     }
 
     @Override
@@ -731,10 +788,7 @@ public class VoiceService extends Service implements YarvisWebSocketClient.Conne
             updateNotification(true);
         } else {
             sendCommandBroadcast("AUTH_FAILED: " + message);
-            // Si la autenticación falla, desconectarse
-            if (webSocketClient != null) {
-                webSocketClient.disconnect();
-            }
+            // La desconexión es manejada por WebSocketService
         }
     }
 

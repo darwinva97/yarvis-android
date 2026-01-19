@@ -1,8 +1,12 @@
 package com.yarvis.assistant.settings;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
-import android.view.View;
+import android.os.IBinder;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -16,22 +20,27 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.yarvis.assistant.R;
 import com.yarvis.assistant.network.ServerConfig;
 import com.yarvis.assistant.network.WebSocketMessage;
+import com.yarvis.assistant.network.WebSocketService;
 import com.yarvis.assistant.network.YarvisWebSocketClient;
 
 /**
  * Activity para configurar la conexión al backend.
+ * Usa WebSocketService para mantener la conexión persistente.
  */
-public class SettingsActivity extends AppCompatActivity implements YarvisWebSocketClient.ConnectionListener {
+public class SettingsActivity extends AppCompatActivity implements
+        WebSocketService.ConnectionStateListener,
+        YarvisWebSocketClient.ConnectionListener {
 
     private ServerConfig serverConfig;
-    private YarvisWebSocketClient webSocketClient;
+    private WebSocketService webSocketService;
+    private boolean serviceBound = false;
 
     // Views de configuración
     private TextInputEditText agentNameInput;
     private TextInputEditText backendUrlInput;
     private TextInputEditText backendPasswordInput;
     private SwitchCompat connectSwitch;
-    private View connectionIndicator;
+    private android.view.View connectionIndicator;
     private TextView connectionStatus;
     private Button saveConfigButton;
 
@@ -42,6 +51,32 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
     private Button changePasswordButton;
 
     private boolean isConnected = false;
+    private boolean isAuthenticated = false;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder binder) {
+            WebSocketService.LocalBinder localBinder = (WebSocketService.LocalBinder) binder;
+            webSocketService = localBinder.getService();
+            serviceBound = true;
+
+            // Registrar listeners
+            webSocketService.addConnectionStateListener(SettingsActivity.this);
+            webSocketService.addMessageListener(SettingsActivity.this);
+
+            // Actualizar UI con estado actual
+            updateConnectionUI(webSocketService.isAuthenticated(),
+                    webSocketService.isAuthenticated() ? getString(R.string.status_connected) :
+                            (webSocketService.isConnected() ? getString(R.string.status_connecting) :
+                                    getString(R.string.status_disconnected)));
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            webSocketService = null;
+            serviceBound = false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +87,25 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
         initViews();
         loadCurrentConfig();
         setupListeners();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Bind al WebSocketService
+        Intent intent = new Intent(this, WebSocketService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (serviceBound && webSocketService != null) {
+            webSocketService.removeConnectionStateListener(this);
+            webSocketService.removeMessageListener(this);
+            unbindService(serviceConnection);
+            serviceBound = false;
+        }
     }
 
     private void initViews() {
@@ -90,10 +144,8 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
 
         connectSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                // Intentar conectar
                 connectToBackend();
             } else {
-                // Desconectar
                 disconnectFromBackend();
             }
         });
@@ -103,25 +155,25 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
         String agentName = getText(agentNameInput);
         String backendUrl = getText(backendUrlInput);
         String password = getText(backendPasswordInput);
+        boolean enabled = connectSwitch.isChecked();
 
+        // Guardar configuración
         serverConfig.setAgentName(agentName);
         serverConfig.setServerUrl(backendUrl);
         serverConfig.setPassword(password);
-        serverConfig.setEnabled(connectSwitch.isChecked());
+        serverConfig.setEnabled(enabled);
 
         Toast.makeText(this, R.string.config_saved, Toast.LENGTH_SHORT).show();
 
-        // Si está habilitado, reconectar con la nueva configuración
-        if (connectSwitch.isChecked()) {
-            disconnectFromBackend();
-            connectToBackend();
+        // Actualizar el servicio con la nueva configuración
+        if (serviceBound && webSocketService != null) {
+            webSocketService.updateCredentials(backendUrl, password, agentName, enabled);
         }
     }
 
     private void connectToBackend() {
         String url = getText(backendUrlInput);
         String password = getText(backendPasswordInput);
-        String agentName = getText(agentNameInput);
 
         if (url.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "URL y contraseña son requeridos", Toast.LENGTH_SHORT).show();
@@ -131,30 +183,25 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
 
         updateConnectionUI(false, getString(R.string.status_connecting));
 
-        // Crear cliente WebSocket
-        if (webSocketClient != null) {
-            webSocketClient.destroy();
-        }
-
-        webSocketClient = new YarvisWebSocketClient(url);
-        webSocketClient.setCredentials(password, agentName);
-        webSocketClient.setListener(this);
-        webSocketClient.connect();
+        // Guardar configuración y reconectar
+        saveConfiguration();
     }
 
     private void disconnectFromBackend() {
-        if (webSocketClient != null) {
-            webSocketClient.disconnect();
-            webSocketClient.destroy();
-            webSocketClient = null;
+        serverConfig.setEnabled(false);
+
+        if (serviceBound && webSocketService != null) {
+            webSocketService.disconnect();
         }
+
         isConnected = false;
+        isAuthenticated = false;
         updateConnectionUI(false, getString(R.string.status_disconnected));
         changePasswordButton.setEnabled(false);
     }
 
     private void changePassword() {
-        if (!isConnected || webSocketClient == null) {
+        if (!isAuthenticated || !serviceBound || webSocketService == null) {
             Toast.makeText(this, R.string.must_be_connected, Toast.LENGTH_SHORT).show();
             return;
         }
@@ -173,42 +220,67 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
             return;
         }
 
-        webSocketClient.changePassword(currentPassword, newPassword);
+        YarvisWebSocketClient client = webSocketService.getWebSocketClient();
+        if (client != null) {
+            client.changePassword(currentPassword, newPassword);
+        }
     }
 
-    private void updateConnectionUI(boolean connected, String statusText) {
-        isConnected = connected;
-        connectionStatus.setText(statusText);
+    private void updateConnectionUI(boolean authenticated, String statusText) {
+        runOnUiThread(() -> {
+            isAuthenticated = authenticated;
+            connectionStatus.setText(statusText);
 
-        int color = connected
-                ? ContextCompat.getColor(this, R.color.success)
-                : ContextCompat.getColor(this, R.color.error);
+            int color = authenticated
+                    ? ContextCompat.getColor(this, R.color.success)
+                    : ContextCompat.getColor(this, R.color.error);
 
-        GradientDrawable drawable = (GradientDrawable) connectionIndicator.getBackground();
-        drawable.setColor(color);
+            GradientDrawable drawable = (GradientDrawable) connectionIndicator.getBackground();
+            drawable.setColor(color);
 
-        changePasswordButton.setEnabled(connected);
+            changePasswordButton.setEnabled(authenticated);
+        });
     }
 
     private String getText(TextInputEditText input) {
         return input.getText() != null ? input.getText().toString().trim() : "";
     }
 
-    // YarvisWebSocketClient.ConnectionListener implementation
+    // ==================== WebSocketService.ConnectionStateListener ====================
+
+    @Override
+    public void onConnectionStateChanged(boolean connected, boolean authenticated) {
+        runOnUiThread(() -> {
+            isConnected = connected;
+            isAuthenticated = authenticated;
+
+            String status;
+            if (authenticated) {
+                status = getString(R.string.status_connected);
+            } else if (connected) {
+                status = getString(R.string.status_connecting);
+            } else {
+                status = getString(R.string.status_disconnected);
+            }
+
+            updateConnectionUI(authenticated, status);
+        });
+    }
+
+    // ==================== YarvisWebSocketClient.ConnectionListener ====================
 
     @Override
     public void onConnected() {
-        // La conexión se establece pero aún no autenticado
-        updateConnectionUI(false, getString(R.string.status_connecting));
+        // Manejado por onConnectionStateChanged
     }
 
     @Override
     public void onDisconnected() {
-        updateConnectionUI(false, getString(R.string.status_disconnected));
-        if (connectSwitch.isChecked()) {
-            // Si debería estar conectado pero se desconectó, mostrar estado de reconexión
-            connectionStatus.setText(getString(R.string.status_connecting));
-        }
+        runOnUiThread(() -> {
+            if (connectSwitch.isChecked()) {
+                connectionStatus.setText(getString(R.string.status_connecting));
+            }
+        });
     }
 
     @Override
@@ -223,7 +295,7 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
 
     @Override
     public void onError(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
     }
 
     @Override
@@ -238,39 +310,34 @@ public class SettingsActivity extends AppCompatActivity implements YarvisWebSock
 
     @Override
     public void onAuthResult(boolean success, String message) {
-        if (success) {
-            updateConnectionUI(true, getString(R.string.status_connected));
-            // Guardar que la conexión está habilitada
-            serverConfig.setEnabled(true);
-        } else {
-            updateConnectionUI(false, getString(R.string.status_auth_failed));
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-            connectSwitch.setChecked(false);
-        }
+        runOnUiThread(() -> {
+            if (success) {
+                updateConnectionUI(true, getString(R.string.status_connected));
+                serverConfig.setEnabled(true);
+            } else {
+                updateConnectionUI(false, getString(R.string.status_auth_failed));
+                Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                connectSwitch.setChecked(false);
+            }
+        });
     }
 
     @Override
     public void onPasswordChangeResult(boolean success, String message) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        runOnUiThread(() -> {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 
-        if (success) {
-            // Actualizar la contraseña guardada localmente
-            String newPassword = getText(newPasswordInput);
-            serverConfig.setPassword(newPassword);
-            backendPasswordInput.setText(newPassword);
+            if (success) {
+                // Actualizar la contraseña guardada localmente
+                String newPassword = getText(newPasswordInput);
+                serverConfig.setPassword(newPassword);
+                backendPasswordInput.setText(newPassword);
 
-            // Limpiar campos
-            currentPasswordInput.setText("");
-            newPasswordInput.setText("");
-            confirmPasswordInput.setText("");
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (webSocketClient != null) {
-            webSocketClient.destroy();
-        }
+                // Limpiar campos
+                currentPasswordInput.setText("");
+                newPasswordInput.setText("");
+                confirmPasswordInput.setText("");
+            }
+        });
     }
 }

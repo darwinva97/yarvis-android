@@ -1,6 +1,7 @@
 package com.yarvis.assistant;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
@@ -10,6 +11,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.yarvis.assistant.chat.ChatActivity;
+import com.yarvis.assistant.network.ServerConfig;
+import com.yarvis.assistant.network.WebSocketService;
 import com.yarvis.assistant.settings.SettingsActivity;
 
 import java.util.Map;
@@ -61,6 +64,25 @@ public class MainActivity extends AppCompatActivity implements
                 findViewById(R.id.notification_permission_button),
                 findViewById(R.id.battery_optimization_button)
         );
+
+        // Iniciar WebSocketService si está habilitado
+        startWebSocketServiceIfEnabled();
+    }
+
+    /**
+     * Inicia el WebSocketService si la conexión al backend está habilitada.
+     */
+    private void startWebSocketServiceIfEnabled() {
+        ServerConfig serverConfig = new ServerConfig(this);
+        if (serverConfig.isEnabled()) {
+            Intent wsIntent = new Intent(this, WebSocketService.class);
+            wsIntent.setAction(WebSocketService.ACTION_START);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(wsIntent);
+            } else {
+                startService(wsIntent);
+            }
+        }
     }
 
     private void setupClickListeners() {
