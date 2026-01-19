@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: yarvis-backend
+  namespace: yarvis
+  labels:
+    app.kubernetes.io/name: yarvis
+    app.kubernetes.io/component: backend
+  annotations:
+    # Para Traefik (default en k3s)
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Para cert-manager (si lo tienes instalado)
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Para NGINX Ingress Controller (alternativa)
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # nginx.ingress.kubernetes.io/websocket-services: yarvis-backend
+spec:
+  # Descomentar si usas cert-manager
+  # tls:
+  #   - hosts:
+  #       - yarvis.example.com
+  #     secretName: yarvis-tls
+  rules:
+    - host: yarvis.example.com  # CAMBIAR por tu dominio
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: yarvis-backend
+                port:
+                  number: 80
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: yarvis-backend
+                port:
+                  number: 3000

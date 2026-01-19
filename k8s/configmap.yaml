@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: yarvis-backend-config
+  namespace: yarvis
+  labels:
+    app.kubernetes.io/name: yarvis
+    app.kubernetes.io/component: backend
+data:
+  PORT: "3000"
+  WORKFLOW_TIMEOUT: "30000"
+  SESSION_TIMEOUT: "300000"
+  MOCK_MODE: "false"
+  MOCK_DELAY: "500"

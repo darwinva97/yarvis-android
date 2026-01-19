@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yarvis-backend
+  namespace: yarvis
+  labels:
+    app.kubernetes.io/name: yarvis
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: yarvis
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: yarvis
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: yarvis-backend
+          # Esta imagen se actualiza automáticamente por el workflow de CI/CD
+          image: ghcr.io/darwinva97/yarvis-android/yarvis-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: yarvis-backend-config
+            - secretRef:
+                name: yarvis-backend-secrets
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+      securityContext:
+        fsGroup: 1001
+      # Si usas registro privado de GitHub
+      # imagePullSecrets:
+      #   - name: ghcr-secret

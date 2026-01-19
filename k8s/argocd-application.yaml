@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: yarvis-backend
+  namespace: argocd
+  # Finalizer para limpieza automática al eliminar la Application
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    # CAMBIAR: URL de tu repositorio
+    repoURL: https://github.com/darwinva97/yarvis-android.git
+    targetRevision: HEAD
+    path: k8s
+
+    # Si usas Kustomize (recomendado)
+    kustomize:
+      # Puedes especificar overlays aquí
+      # path: overlays/prod
+
+  destination:
+    # CAMBIAR: URL de tu cluster (o 'https://kubernetes.default.svc' para in-cluster)
+    server: https://kubernetes.default.svc
+    namespace: yarvis
+
+  syncPolicy:
+    automated:
+      prune: true        # Eliminar recursos huérfanos
+      selfHeal: true     # Revertir cambios manuales
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+  # Notificaciones (opcional, requiere argocd-notifications)
+  # notifications:
+  #   - trigger: on-sync-succeeded
+  #     send: [slack]
