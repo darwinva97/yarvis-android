@@ -13,10 +13,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Cliente WebSocket para comunicación con el backend de Yarvis.
- * Maneja reconexión automática, sesiones de conversación, autenticación y ping/pong.
- */
 public class YarvisWebSocketClient {
 
     private static final String TAG = "YarvisWebSocket";
@@ -33,16 +29,11 @@ public class YarvisWebSocketClient {
     private boolean isAuthenticated = false;
     private ConnectionListener listener;
 
-    // Credenciales para autenticación
     private String password;
     private String agentName;
 
-    // Sesión de conversación activa
     private String activeSessionId = null;
 
-    /**
-     * Listener para eventos del WebSocket.
-     */
     public interface ConnectionListener {
         void onConnected();
         void onDisconnected();
@@ -65,26 +56,17 @@ public class YarvisWebSocketClient {
         this.listener = listener;
     }
 
-    /**
-     * Establece las credenciales para autenticación.
-     */
     public void setCredentials(String password, String agentName) {
         this.password = password;
         this.agentName = agentName;
     }
 
-    /**
-     * Conecta al servidor WebSocket.
-     */
     public void connect() {
         shouldBeConnected = true;
         isAuthenticated = false;
         doConnect();
     }
 
-    /**
-     * Desconecta del servidor.
-     */
     public void disconnect() {
         shouldBeConnected = false;
         isAuthenticated = false;
@@ -98,9 +80,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Envía la autenticación al servidor.
-     */
     private void sendAuthentication() {
         if (connection != null && connection.isConnected() && password != null) {
             try {
@@ -118,9 +97,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Solicita cambio de contraseña.
-     */
     public void changePassword(String currentPassword, String newPassword) {
         if (connection != null && connection.isConnected() && isAuthenticated) {
             try {
@@ -139,10 +115,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Envía un comando de voz al backend.
-     * Incluye el sessionId si hay una conversación activa.
-     */
     public void sendVoiceCommand(String text) {
         if (!isAuthenticated) {
             Log.w(TAG, "Cannot send voice command - not authenticated");
@@ -159,10 +131,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Envía un mensaje de chat (texto escrito) al backend.
-     * Incluye el sessionId si hay una conversación activa.
-     */
     public void sendChatMessage(String text) {
         if (!isAuthenticated) {
             Log.w(TAG, "Cannot send chat message - not authenticated");
@@ -179,9 +147,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Envía una notificación al backend.
-     */
     public void sendNotification(String app, String title, String text) {
         if (!isAuthenticated) {
             Log.w(TAG, "Cannot send notification - not authenticated");
@@ -195,9 +160,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Termina la conversación activa.
-     */
     public void endConversation(String reason) {
         if (activeSessionId != null && connection != null && connection.isConnected() && isAuthenticated) {
             WebSocketMessage.EndConversation message =
@@ -208,30 +170,18 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Verifica si está conectado.
-     */
     public boolean isConnected() {
         return connection != null && connection.isConnected();
     }
 
-    /**
-     * Verifica si está autenticado.
-     */
     public boolean isAuthenticated() {
         return isAuthenticated;
     }
 
-    /**
-     * Verifica si hay una conversación activa.
-     */
     public boolean hasActiveConversation() {
         return activeSessionId != null;
     }
 
-    /**
-     * Obtiene el ID de la sesión activa.
-     */
     public String getActiveSessionId() {
         return activeSessionId;
     }
@@ -247,7 +197,6 @@ public class YarvisWebSocketClient {
                 @Override
                 public void onOpen() {
                     Log.i(TAG, "Connected to " + serverUrl);
-                    // Enviar autenticación inmediatamente después de conectar
                     sendAuthentication();
                 }
 
@@ -284,11 +233,10 @@ public class YarvisWebSocketClient {
     }
 
     private void handleServerMessage(String jsonString) {
-        // Verificar si es respuesta de autenticación
         try {
             JSONObject json = new JSONObject(jsonString);
             String type = json.optString("type", "");
-            
+
             if ("auth_response".equals(type)) {
                 boolean success = json.optBoolean("success", false);
                 String message = json.optString("message", "");
@@ -303,7 +251,7 @@ public class YarvisWebSocketClient {
                 notifyAuthResult(success, message);
                 return;
             }
-            
+
             if ("change_password_response".equals(type)) {
                 boolean success = json.optBoolean("success", false);
                 String message = json.optString("message", "");
@@ -385,8 +333,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    // Notificaciones al listener en el hilo principal
-
     private void notifyConnected() {
         if (listener != null) {
             mainHandler.post(() -> listener.onConnected());
@@ -441,9 +387,6 @@ public class YarvisWebSocketClient {
         }
     }
 
-    /**
-     * Libera recursos.
-     */
     public void destroy() {
         disconnect();
         scheduler.shutdown();

@@ -23,10 +23,6 @@ import com.yarvis.assistant.network.WebSocketMessage;
 import com.yarvis.assistant.network.WebSocketService;
 import com.yarvis.assistant.network.YarvisWebSocketClient;
 
-/**
- * Activity para configurar la conexión al backend.
- * Usa WebSocketService para mantener la conexión persistente.
- */
 public class SettingsActivity extends AppCompatActivity implements
         WebSocketService.ConnectionStateListener,
         YarvisWebSocketClient.ConnectionListener {
@@ -35,7 +31,6 @@ public class SettingsActivity extends AppCompatActivity implements
     private WebSocketService webSocketService;
     private boolean serviceBound = false;
 
-    // Views de configuración
     private TextInputEditText agentNameInput;
     private TextInputEditText backendUrlInput;
     private TextInputEditText backendPasswordInput;
@@ -44,7 +39,6 @@ public class SettingsActivity extends AppCompatActivity implements
     private TextView connectionStatus;
     private Button saveConfigButton;
 
-    // Views de cambio de contraseña
     private TextInputEditText currentPasswordInput;
     private TextInputEditText newPasswordInput;
     private TextInputEditText confirmPasswordInput;
@@ -60,11 +54,9 @@ public class SettingsActivity extends AppCompatActivity implements
             webSocketService = localBinder.getService();
             serviceBound = true;
 
-            // Registrar listeners
             webSocketService.addConnectionStateListener(SettingsActivity.this);
             webSocketService.addMessageListener(SettingsActivity.this);
 
-            // Actualizar UI con estado actual
             updateConnectionUI(webSocketService.isAuthenticated(),
                     webSocketService.isAuthenticated() ? getString(R.string.status_connected) :
                             (webSocketService.isConnected() ? getString(R.string.status_connecting) :
@@ -92,7 +84,6 @@ public class SettingsActivity extends AppCompatActivity implements
     @Override
     protected void onStart() {
         super.onStart();
-        // Bind al WebSocketService
         Intent intent = new Intent(this, WebSocketService.class);
         bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
     }
@@ -109,11 +100,9 @@ public class SettingsActivity extends AppCompatActivity implements
     }
 
     private void initViews() {
-        // Header
         ImageButton backButton = findViewById(R.id.back_button);
         backButton.setOnClickListener(v -> finish());
 
-        // Configuración de conexión
         agentNameInput = findViewById(R.id.agent_name_input);
         backendUrlInput = findViewById(R.id.backend_url_input);
         backendPasswordInput = findViewById(R.id.backend_password_input);
@@ -122,7 +111,6 @@ public class SettingsActivity extends AppCompatActivity implements
         connectionStatus = findViewById(R.id.connection_status);
         saveConfigButton = findViewById(R.id.save_config_button);
 
-        // Cambio de contraseña
         currentPasswordInput = findViewById(R.id.current_password_input);
         newPasswordInput = findViewById(R.id.new_password_input);
         confirmPasswordInput = findViewById(R.id.confirm_password_input);
@@ -157,7 +145,6 @@ public class SettingsActivity extends AppCompatActivity implements
         String password = getText(backendPasswordInput);
         boolean enabled = connectSwitch.isChecked();
 
-        // Guardar configuración
         serverConfig.setAgentName(agentName);
         serverConfig.setServerUrl(backendUrl);
         serverConfig.setPassword(password);
@@ -165,7 +152,6 @@ public class SettingsActivity extends AppCompatActivity implements
 
         Toast.makeText(this, R.string.config_saved, Toast.LENGTH_SHORT).show();
 
-        // Actualizar el servicio con la nueva configuración
         if (serviceBound && webSocketService != null) {
             webSocketService.updateCredentials(backendUrl, password, agentName, enabled);
         }
@@ -183,7 +169,6 @@ public class SettingsActivity extends AppCompatActivity implements
 
         updateConnectionUI(false, getString(R.string.status_connecting));
 
-        // Guardar configuración y reconectar
         saveConfiguration();
     }
 
@@ -246,8 +231,6 @@ public class SettingsActivity extends AppCompatActivity implements
         return input.getText() != null ? input.getText().toString().trim() : "";
     }
 
-    // ==================== WebSocketService.ConnectionStateListener ====================
-
     @Override
     public void onConnectionStateChanged(boolean connected, boolean authenticated) {
         runOnUiThread(() -> {
@@ -267,11 +250,8 @@ public class SettingsActivity extends AppCompatActivity implements
         });
     }
 
-    // ==================== YarvisWebSocketClient.ConnectionListener ====================
-
     @Override
     public void onConnected() {
-        // Manejado por onConnectionStateChanged
     }
 
     @Override
@@ -285,12 +265,10 @@ public class SettingsActivity extends AppCompatActivity implements
 
     @Override
     public void onResponse(WebSocketMessage.Response response) {
-        // No usado en settings
     }
 
     @Override
     public void onAction(String action, String params) {
-        // No usado en settings
     }
 
     @Override
@@ -300,12 +278,10 @@ public class SettingsActivity extends AppCompatActivity implements
 
     @Override
     public void onConversationStarted(String sessionId, String greeting, WebSocketMessage.ShowContent show) {
-        // No usado en settings
     }
 
     @Override
     public void onConversationEnded(String sessionId, String farewell, String reason) {
-        // No usado en settings
     }
 
     @Override
@@ -328,12 +304,10 @@ public class SettingsActivity extends AppCompatActivity implements
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 
             if (success) {
-                // Actualizar la contraseña guardada localmente
                 String newPassword = getText(newPasswordInput);
                 serverConfig.setPassword(newPassword);
                 backendPasswordInput.setText(newPassword);
 
-                // Limpiar campos
                 currentPasswordInput.setText("");
                 newPasswordInput.setText("");
                 confirmPasswordInput.setText("");

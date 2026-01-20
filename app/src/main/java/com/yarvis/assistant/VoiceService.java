@@ -39,26 +39,18 @@ import com.yarvis.assistant.processing.ResultCallback;
 import java.util.ArrayList;
 import java.util.Locale;
 
-/**
- * Foreground Service para reconocimiento de voz continuo.
- * Usa SpeechRecognizer de Android para convertir voz a texto.
- * Usa WebSocketService para conexión persistente con el backend.
- */
 public class VoiceService extends Service implements
         YarvisWebSocketClient.ConnectionListener,
         WebSocketService.ConnectionStateListener {
 
-    // Estado de conversación
     private boolean inConversation = false;
     private String currentSessionId = null;
 
     private static final String TAG = "VoiceService";
 
-    // Acciones para controlar el servicio
     public static final String ACTION_START = "com.yarvis.assistant.START";
     public static final String ACTION_STOP = "com.yarvis.assistant.STOP";
 
-    // Broadcasts para comunicar con MainActivity
     public static final String ACTION_SPEECH_RESULT = "com.yarvis.assistant.SPEECH_RESULT";
     public static final String ACTION_SPEECH_PARTIAL = "com.yarvis.assistant.SPEECH_PARTIAL";
     public static final String ACTION_COMMAND_DETECTED = "com.yarvis.assistant.COMMAND_DETECTED";
@@ -67,28 +59,22 @@ public class VoiceService extends Service implements
     public static final String EXTRA_COMMAND = "command";
     public static final String EXTRA_CONNECTED = "connected";
 
-    // Configuración del canal de notificación
     private static final String CHANNEL_ID = "yarvis_voice_channel";
     private static final int NOTIFICATION_ID = 1;
 
-    // Estado del servicio
     private static volatile boolean isRunning = false;
 
-    // Componentes de reconocimiento de voz
     private SpeechRecognizer speechRecognizer;
     private Intent recognizerIntent;
     private Handler mainHandler;
     private boolean isListening = false;
 
-    // Text-to-Speech
     private TextToSpeech tts;
     private boolean ttsReady = false;
     private boolean isSpeaking = false;
 
-    // Control de lectura de notificaciones
     private boolean readNotifications = true;
 
-    // Binder para comunicación con Activities
     private final IBinder binder = new LocalBinder();
 
     public class LocalBinder extends Binder {
@@ -97,7 +83,6 @@ public class VoiceService extends Service implements
         }
     }
 
-    // WebSocket y configuración
     private WebSocketService webSocketService;
     private boolean webSocketBound = false;
     private ServerConfig serverConfig;
@@ -111,7 +96,6 @@ public class VoiceService extends Service implements
             webSocketService = localBinder.getService();
             webSocketBound = true;
 
-            // Registrar listeners
             webSocketService.addConnectionStateListener(VoiceService.this);
             webSocketService.addMessageListener(VoiceService.this);
 
@@ -128,13 +112,10 @@ public class VoiceService extends Service implements
         }
     };
 
-    // Sistema de procesamiento de comandos (POO avanzado)
     private CommandProcessorManager commandProcessorManager;
 
-    // Historial de chat
     private ChatHistoryManager chatHistoryManager;
 
-    // Receiver para notificaciones del sistema
     private final BroadcastReceiver notificationReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -148,14 +129,12 @@ public class VoiceService extends Service implements
             if (title == null) title = "";
             if (text == null) text = "";
 
-            // Si el backend está habilitado, enviar la notificación
             if (backendEnabled && backendConnected && webSocketBound && webSocketService != null) {
                 YarvisWebSocketClient client = webSocketService.getWebSocketClient();
                 if (client != null) {
                     client.sendNotification(app, title, text);
                 }
             } else {
-                // Comportamiento local: leer la notificación
                 StringBuilder message = new StringBuilder();
                 message.append("Notificación de ").append(app).append(". ");
                 if (!title.isEmpty()) {
@@ -174,9 +153,6 @@ public class VoiceService extends Service implements
         }
     };
 
-    /**
-     * Verifica si el servicio está corriendo.
-     */
     public static boolean isRunning() {
         return isRunning;
     }
@@ -195,23 +171,15 @@ public class VoiceService extends Service implements
         initializeCommandProcessor();
     }
 
-    /**
-     * Inicializa el sistema de procesamiento de comandos.
-     * Demuestra el uso de: Clases abstractas, Genéricos, Polimorfismo, etc.
-     */
     private void initializeCommandProcessor() {
         commandProcessorManager = CommandProcessorManager.getInstance(this);
         Log.d(TAG, "Command processor manager initialized");
     }
 
-    /**
-     * Se conecta al WebSocketService para usar la conexión persistente.
-     */
     private void bindToWebSocketService() {
         backendEnabled = serverConfig.isEnabled();
 
         if (backendEnabled) {
-            // Iniciar y bindear al WebSocketService
             Intent wsIntent = new Intent(this, WebSocketService.class);
             wsIntent.setAction(WebSocketService.ACTION_START);
             startService(wsIntent);
@@ -222,9 +190,6 @@ public class VoiceService extends Service implements
         }
     }
 
-    /**
-     * Registra el receiver para notificaciones.
-     */
     private void registerNotificationReceiver() {
         IntentFilter filter = new IntentFilter(NotificationService.ACTION_NOTIFICATION_RECEIVED);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -235,9 +200,6 @@ public class VoiceService extends Service implements
         Log.d(TAG, "Notification receiver registered");
     }
 
-    /**
-     * Inicializa Text-to-Speech.
-     */
     private void initializeTTS() {
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
@@ -271,9 +233,6 @@ public class VoiceService extends Service implements
         });
     }
 
-    /**
-     * Habla el texto dado.
-     */
     private void speak(String text) {
         if (ttsReady && tts != null) {
             stopListening();
@@ -307,9 +266,6 @@ public class VoiceService extends Service implements
         return binder;
     }
 
-    /**
-     * Obtiene el cliente WebSocket para acceso externo.
-     */
     public YarvisWebSocketClient getWebSocketClient() {
         if (webSocketBound && webSocketService != null) {
             return webSocketService.getWebSocketClient();
@@ -317,9 +273,6 @@ public class VoiceService extends Service implements
         return null;
     }
 
-    /**
-     * Obtiene el WebSocketService.
-     */
     public WebSocketService getWebSocketService() {
         return webSocketService;
     }
@@ -330,7 +283,6 @@ public class VoiceService extends Service implements
         Log.d(TAG, "Service destroyed");
         stopListening();
 
-        // Desconectar del WebSocketService (pero no destruirlo)
         if (webSocketBound && webSocketService != null) {
             webSocketService.removeConnectionStateListener(this);
             webSocketService.removeMessageListener(this);
@@ -338,7 +290,6 @@ public class VoiceService extends Service implements
             webSocketBound = false;
         }
 
-        // Limpiar procesador de comandos
         if (commandProcessorManager != null) {
             commandProcessorManager.shutdown();
         }
@@ -346,7 +297,6 @@ public class VoiceService extends Service implements
         try {
             unregisterReceiver(notificationReceiver);
         } catch (IllegalArgumentException e) {
-            // Receiver not registered
         }
         if (speechRecognizer != null) {
             speechRecognizer.destroy();
@@ -360,9 +310,6 @@ public class VoiceService extends Service implements
         isRunning = false;
     }
 
-    /**
-     * Crea el canal de notificación (requerido Android 8.0+).
-     */
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -380,9 +327,6 @@ public class VoiceService extends Service implements
         }
     }
 
-    /**
-     * Inicia el servicio en primer plano con notificación.
-     */
     private void startForegroundWithNotification() {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -426,9 +370,6 @@ public class VoiceService extends Service implements
         Log.d(TAG, "Foreground service started");
     }
 
-    /**
-     * Actualiza la notificación con el estado de conexión.
-     */
     private void updateNotification(boolean connected) {
         if (!isRunning) return;
 
@@ -469,9 +410,6 @@ public class VoiceService extends Service implements
         }
     }
 
-    /**
-     * Inicializa el SpeechRecognizer.
-     */
     private void initializeSpeechRecognizer() {
         mainHandler.post(() -> {
             if (speechRecognizer != null) {
@@ -502,9 +440,6 @@ public class VoiceService extends Service implements
         });
     }
 
-    /**
-     * Inicia el reconocimiento de voz.
-     */
     private void startListening() {
         mainHandler.post(() -> {
             if (speechRecognizer != null && !isListening) {
@@ -515,9 +450,6 @@ public class VoiceService extends Service implements
         });
     }
 
-    /**
-     * Detiene el reconocimiento de voz.
-     */
     private void stopListening() {
         mainHandler.post(() -> {
             isListening = false;
@@ -528,9 +460,6 @@ public class VoiceService extends Service implements
         });
     }
 
-    /**
-     * Reinicia el reconocimiento después de un resultado o error.
-     */
     private void restartListening() {
         mainHandler.postDelayed(() -> {
             if (isRunning && speechRecognizer != null) {
@@ -541,9 +470,6 @@ public class VoiceService extends Service implements
         }, 500);
     }
 
-    /**
-     * Envía un broadcast con el texto reconocido.
-     */
     private void sendBroadcast(String action, String text) {
         Intent intent = new Intent(action);
         intent.putExtra(EXTRA_TEXT, text);
@@ -551,9 +477,6 @@ public class VoiceService extends Service implements
         sendBroadcast(intent);
     }
 
-    /**
-     * Envía un broadcast cuando se detecta un comando.
-     */
     private void sendCommandBroadcast(String command) {
         Intent intent = new Intent(ACTION_COMMAND_DETECTED);
         intent.putExtra(EXTRA_COMMAND, command);
@@ -561,9 +484,6 @@ public class VoiceService extends Service implements
         sendBroadcast(intent);
     }
 
-    /**
-     * Envía broadcast de estado de conexión.
-     */
     private void sendConnectionBroadcast(boolean connected) {
         Intent intent = new Intent(ACTION_CONNECTION_STATUS);
         intent.putExtra(EXTRA_CONNECTED, connected);
@@ -571,17 +491,11 @@ public class VoiceService extends Service implements
         sendBroadcast(intent);
     }
 
-    /**
-     * Verifica si el texto comienza con el wake word "yarvis" o "jarvis".
-     */
     private boolean startsWithWakeWord(String text) {
         String lowerText = text.toLowerCase(Locale.getDefault()).trim();
         return lowerText.startsWith("yarvis") || lowerText.startsWith("jarvis");
     }
 
-    /**
-     * Elimina el wake word del inicio del texto.
-     */
     private String removeWakeWord(String text) {
         String lowerText = text.toLowerCase(Locale.getDefault()).trim();
         if (lowerText.startsWith("yarvis")) {
@@ -592,39 +506,26 @@ public class VoiceService extends Service implements
         return text;
     }
 
-    /**
-     * Procesa el texto reconocido.
-     * Solo envía al backend si comienza con "yarvis" o "jarvis".
-     * Si no, procesa localmente.
-     */
     private void processVoiceCommand(String text) {
         YarvisWebSocketClient client = getWebSocketClient();
         if (backendEnabled && backendConnected && client != null && startsWithWakeWord(text)) {
-            // Eliminar wake word y enviar al backend
             String command = removeWakeWord(text);
             if (!command.isEmpty()) {
                 client.sendVoiceCommand(command);
                 Log.d(TAG, "Sent to backend: " + command);
             } else {
-                // Solo dijo "yarvis" sin comando
                 String response = "¿Sí? ¿En qué puedo ayudarte?";
                 speak(response);
                 Log.d(TAG, "Wake word only, no command");
             }
         } else {
-            // Procesar localmente si no tiene wake word o backend no disponible
             checkForLocalCommands(text);
         }
     }
 
-    /**
-     * Verifica si el texto contiene comandos locales conocidos.
-     * Usa el CommandProcessorManager para comandos avanzados (POO).
-     */
     private void checkForLocalCommands(String text) {
         String lowerText = text.toLowerCase(Locale.getDefault());
 
-        // Comandos especiales del asistente (wake word, saludos, despedidas)
         if (lowerText.contains("hey yarvis") || lowerText.contains("hola yarvis") ||
             lowerText.contains("oye yarvis")) {
             String response = "¿Sí? ¿En qué puedo ayudarte?";
@@ -650,7 +551,6 @@ public class VoiceService extends Service implements
             return;
         }
 
-        // Comandos para terminar conversación (modo local)
         if (lowerText.contains("adiós") || lowerText.contains("adios") ||
             lowerText.contains("hasta luego") || lowerText.contains("chao") ||
             lowerText.contains("termina") || lowerText.contains("eso es todo")) {
@@ -660,23 +560,15 @@ public class VoiceService extends Service implements
             return;
         }
 
-        // Usar el sistema de procesamiento avanzado para otros comandos
-        // Demuestra: POLIMORFISMO, GENÉRICOS, CLASES ABSTRACTAS, INTERFACES FUNCIONALES
         processWithCommandProcessor(text);
     }
 
-    /**
-     * Procesa comandos usando el sistema POO avanzado.
-     * Utiliza: CommandProcessorManager, Repository<T>, Cache<K,V>,
-     * clases abstractas, interfaces funcionales (ResultCallback).
-     */
     private void processWithCommandProcessor(String text) {
         if (commandProcessorManager == null) {
             Log.w(TAG, "Command processor not initialized");
             return;
         }
 
-        // ResultCallback es una INTERFAZ FUNCIONAL - se usa con lambda
         ResultCallback<CommandResult> callback = result -> {
             mainHandler.post(() -> {
                 if (result.success()) {
@@ -685,16 +577,12 @@ public class VoiceService extends Service implements
                     speak(result.message());
                 } else {
                     Log.w(TAG, "Command failed: " + result.message());
-                    // No hablar errores, solo loguear
                 }
             });
         };
 
-        // processText usa POLIMORFISMO para seleccionar el procesador correcto
         commandProcessorManager.processText(text, callback);
     }
-
-    // ==================== WebSocketService.ConnectionStateListener ====================
 
     @Override
     public void onConnectionStateChanged(boolean connected, boolean authenticated) {
@@ -709,12 +597,9 @@ public class VoiceService extends Service implements
         }
     }
 
-    // ==================== WebSocket Listener ====================
-
     @Override
     public void onConnected() {
         Log.i(TAG, "Backend connected");
-        // Estado manejado por onConnectionStateChanged
     }
 
     @Override
@@ -722,7 +607,6 @@ public class VoiceService extends Service implements
         Log.i(TAG, "Backend disconnected");
         inConversation = false;
         currentSessionId = null;
-        // Estado manejado por onConnectionStateChanged
     }
 
     @Override
@@ -730,7 +614,6 @@ public class VoiceService extends Service implements
         Log.d(TAG, "Backend response: " + response.text);
         sendCommandBroadcast("BACKEND: " + response.text);
 
-        // Agregar respuesta al historial de chat
         ChatMessageModel message = ChatMessageModel.fromAssistantResponse(response);
         chatHistoryManager.addMessage(message);
 
@@ -743,11 +626,6 @@ public class VoiceService extends Service implements
     public void onAction(String action, String params) {
         Log.d(TAG, "Backend action: " + action + " params: " + params);
         sendCommandBroadcast("ACTION: " + action);
-        // Aquí se pueden manejar acciones específicas como:
-        // - TURN_ON_LIGHT
-        // - PLAY_MUSIC
-        // - SET_ALARM
-        // etc.
     }
 
     @Override
@@ -788,28 +666,18 @@ public class VoiceService extends Service implements
             updateNotification(true);
         } else {
             sendCommandBroadcast("AUTH_FAILED: " + message);
-            // La desconexión es manejada por WebSocketService
         }
     }
 
     @Override
     public void onPasswordChangeResult(boolean success, String message) {
         Log.i(TAG, "Password change result: " + success + " - " + message);
-        // En el servicio no manejamos cambio de contraseña, solo en Settings
     }
 
-    /**
-     * Verifica si hay una conversación activa.
-     */
     public boolean isInConversation() {
         return inConversation;
     }
 
-    // ==================== Speech Listener ====================
-
-    /**
-     * Listener para eventos del SpeechRecognizer.
-     */
     private class SpeechListener implements RecognitionListener {
 
         @Override

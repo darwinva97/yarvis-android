@@ -1,21 +1,11 @@
 package com.yarvis.assistant.processing;
 
-/**
- * Clase sellada (sealed) simulada para Java 11.
- * En Java 17+ esto sería: sealed class CommandType permits MediaCommand, SystemCommand, QueryCommand
- *
- * Demuestra: SEALED CLASSES (patrón para Java < 17)
- *
- * La clase base tiene constructor package-private para restringir herencia
- * solo a las clases permitidas dentro de este paquete.
- */
 public abstract class CommandType implements Identifiable {
 
     private final String id;
     private final String category;
     private final long timestamp;
 
-    // Constructor package-private: solo clases en este paquete pueden heredar
     CommandType(String id, String category) {
         this.id = id;
         this.category = category;
@@ -35,25 +25,10 @@ public abstract class CommandType implements Identifiable {
         return timestamp;
     }
 
-    /**
-     * Método abstracto que cada subclase debe implementar.
-     * Demuestra: MÉTODOS ABSTRACTOS
-     */
     public abstract String getDescription();
 
-    /**
-     * Visitor pattern para procesar comandos de forma type-safe.
-     * Demuestra: POLIMORFISMO avanzado con visitor
-     */
     public abstract <R> R accept(CommandVisitor<R> visitor);
 
-    // =========================================================================
-    // SUBCLASES PERMITIDAS (sealed pattern)
-    // =========================================================================
-
-    /**
-     * Comando de medios (música, video, fotos).
-     */
     public static final class MediaCommand extends CommandType {
         public enum Action { PLAY, PAUSE, STOP, NEXT, PREVIOUS, VOLUME_UP, VOLUME_DOWN }
 
@@ -80,9 +55,6 @@ public abstract class CommandType implements Identifiable {
         }
     }
 
-    /**
-     * Comando del sistema (WiFi, Bluetooth, brillo, etc.).
-     */
     public static final class SystemCommand extends CommandType {
         public enum Setting { WIFI, BLUETOOTH, BRIGHTNESS, VOLUME, AIRPLANE_MODE, FLASHLIGHT }
         public enum Operation { ENABLE, DISABLE, TOGGLE, SET }
@@ -118,9 +90,6 @@ public abstract class CommandType implements Identifiable {
         }
     }
 
-    /**
-     * Comando de consulta (clima, hora, información).
-     */
     public static final class QueryCommand extends CommandType {
         public enum QueryType { WEATHER, TIME, DATE, CALENDAR, REMINDER, GENERAL }
 
@@ -147,9 +116,6 @@ public abstract class CommandType implements Identifiable {
         }
     }
 
-    /**
-     * Comando de comunicación (llamadas, mensajes).
-     */
     public static final class CommunicationCommand extends CommandType {
         public enum CommType { CALL, SMS, EMAIL, WHATSAPP }
 
@@ -179,14 +145,6 @@ public abstract class CommandType implements Identifiable {
         }
     }
 
-    // =========================================================================
-    // VISITOR INTERFACE
-    // =========================================================================
-
-    /**
-     * Visitor interface para procesamiento type-safe de comandos.
-     * Demuestra: GENÉRICOS EN INTERFACES
-     */
     public interface CommandVisitor<R> {
         R visitMedia(MediaCommand command);
         R visitSystem(SystemCommand command);

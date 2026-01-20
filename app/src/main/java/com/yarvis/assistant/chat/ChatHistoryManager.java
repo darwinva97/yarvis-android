@@ -14,16 +14,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Gestiona el historial de conversaciones almacenado localmente.
- */
 public class ChatHistoryManager {
 
     private static final String TAG = "ChatHistoryManager";
     private static final String PREFS_NAME = "yarvis_chat_history";
     private static final String KEY_MESSAGES = "messages";
     private static final String KEY_SESSIONS = "sessions";
-    private static final int MAX_MESSAGES = 500;  // Máximo de mensajes a almacenar
+    private static final int MAX_MESSAGES = 500;
 
     private static ChatHistoryManager instance;
     private final SharedPreferences prefs;
@@ -41,7 +38,7 @@ public class ChatHistoryManager {
         public final String id;
         public final long startedAt;
         public long lastActivityAt;
-        public String title;  // Título de la conversación (primera frase del usuario)
+        public String title;
         public int messageCount;
 
         public SessionInfo(String id, long startedAt) {
@@ -99,13 +96,9 @@ public class ChatHistoryManager {
         listeners.remove(listener);
     }
 
-    /**
-     * Agrega un mensaje al historial.
-     */
     public void addMessage(ChatMessageModel message) {
         messages.add(message);
 
-        // Actualizar sesión
         if (message.getSessionId() != null) {
             SessionInfo session = sessions.get(message.getSessionId());
             if (session == null) {
@@ -115,7 +108,6 @@ public class ChatHistoryManager {
             session.lastActivityAt = message.getTimestamp();
             session.messageCount++;
 
-            // Usar primera frase del usuario como título
             if (session.title == null && message.isFromUser()) {
                 String title = message.getText();
                 if (title.length() > 50) {
@@ -125,7 +117,6 @@ public class ChatHistoryManager {
             }
         }
 
-        // Limitar cantidad de mensajes
         while (messages.size() > MAX_MESSAGES) {
             messages.remove(0);
         }
@@ -134,9 +125,6 @@ public class ChatHistoryManager {
         notifyMessageAdded(message);
     }
 
-    /**
-     * Actualiza el estado de un mensaje.
-     */
     public void updateMessageStatus(String messageId, ChatMessageModel.MessageStatus status) {
         for (ChatMessageModel msg : messages) {
             if (msg.getId().equals(messageId)) {
@@ -148,16 +136,10 @@ public class ChatHistoryManager {
         }
     }
 
-    /**
-     * Obtiene todos los mensajes.
-     */
     public List<ChatMessageModel> getAllMessages() {
         return new ArrayList<>(messages);
     }
 
-    /**
-     * Obtiene mensajes de una sesión específica.
-     */
     public List<ChatMessageModel> getMessagesForSession(String sessionId) {
         List<ChatMessageModel> result = new ArrayList<>();
         for (ChatMessageModel msg : messages) {
@@ -168,33 +150,21 @@ public class ChatHistoryManager {
         return result;
     }
 
-    /**
-     * Obtiene los últimos N mensajes.
-     */
     public List<ChatMessageModel> getRecentMessages(int count) {
         int start = Math.max(0, messages.size() - count);
         return new ArrayList<>(messages.subList(start, messages.size()));
     }
 
-    /**
-     * Obtiene todas las sesiones ordenadas por última actividad.
-     */
     public List<SessionInfo> getAllSessions() {
         List<SessionInfo> result = new ArrayList<>(sessions.values());
         Collections.sort(result, (a, b) -> Long.compare(b.lastActivityAt, a.lastActivityAt));
         return result;
     }
 
-    /**
-     * Obtiene información de una sesión.
-     */
     public SessionInfo getSession(String sessionId) {
         return sessions.get(sessionId);
     }
 
-    /**
-     * Limpia todo el historial.
-     */
     public void clearHistory() {
         messages.clear();
         sessions.clear();
@@ -202,20 +172,14 @@ public class ChatHistoryManager {
         notifyHistoryCleared();
     }
 
-    /**
-     * Elimina mensajes de una sesión específica.
-     */
     public void clearSession(String sessionId) {
         messages.removeIf(msg -> sessionId.equals(msg.getSessionId()));
         sessions.remove(sessionId);
         saveToStorage();
     }
 
-    // ==================== Persistencia ====================
-
     private void loadFromStorage() {
         try {
-            // Cargar mensajes
             String messagesJson = prefs.getString(KEY_MESSAGES, "[]");
             JSONArray messagesArray = new JSONArray(messagesJson);
             for (int i = 0; i < messagesArray.length(); i++) {
@@ -226,7 +190,6 @@ public class ChatHistoryManager {
                 }
             }
 
-            // Cargar sesiones
             String sessionsJson = prefs.getString(KEY_SESSIONS, "{}");
             JSONObject sessionsObject = new JSONObject(sessionsJson);
             for (java.util.Iterator<String> it = sessionsObject.keys(); it.hasNext(); ) {
@@ -246,13 +209,11 @@ public class ChatHistoryManager {
 
     private void saveToStorage() {
         try {
-            // Guardar mensajes
             JSONArray messagesArray = new JSONArray();
             for (ChatMessageModel msg : messages) {
                 messagesArray.put(msg.toJson());
             }
 
-            // Guardar sesiones
             JSONObject sessionsObject = new JSONObject();
             for (Map.Entry<String, SessionInfo> entry : sessions.entrySet()) {
                 sessionsObject.put(entry.getKey(), entry.getValue().toJson());
@@ -267,8 +228,6 @@ public class ChatHistoryManager {
             Log.e(TAG, "Error saving history: " + e.getMessage());
         }
     }
-
-    // ==================== Notificaciones ====================
 
     private void notifyMessageAdded(ChatMessageModel message) {
         for (ChatHistoryListener listener : listeners) {

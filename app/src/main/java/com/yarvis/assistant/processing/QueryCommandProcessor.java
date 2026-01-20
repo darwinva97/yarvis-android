@@ -1,7 +1,6 @@
 package com.yarvis.assistant.processing;
 
 import android.content.Context;
-import android.location.Location;
 import android.util.Log;
 
 import com.yarvis.assistant.processing.CommandType.QueryCommand;
@@ -11,11 +10,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-/**
- * Procesador de comandos de consulta (hora, fecha, clima).
- *
- * Demuestra: HERENCIA de clase abstracta, especialización de comportamiento
- */
 public class QueryCommandProcessor extends CommandProcessor<QueryCommand> {
 
     private static final String TAG = "QueryCommandProcessor";
@@ -73,7 +67,6 @@ public class QueryCommandProcessor extends CommandProcessor<QueryCommand> {
     }
 
     private CommandResult getWeather(QueryCommand command) {
-        // Simulación - en producción conectaría con API de clima
         return CommandResult.success(command.getId(),
                 "El clima requiere conexión al backend. Query: " + command.getQuery());
     }
@@ -90,13 +83,11 @@ public class QueryCommandProcessor extends CommandProcessor<QueryCommand> {
     }
 
     private CommandResult handleReminder(QueryCommand command) {
-        // Simula creación de recordatorio
         return CommandResult.success(command.getId(),
                 "Recordatorio: " + command.getQuery() + " (requiere integración con calendario)");
     }
 
     private CommandResult handleGeneralQuery(QueryCommand command) {
-        // Las consultas generales se envían al backend
         return CommandResult.success(command.getId(),
                 "Consulta general enviada al backend: " + command.getQuery());
     }

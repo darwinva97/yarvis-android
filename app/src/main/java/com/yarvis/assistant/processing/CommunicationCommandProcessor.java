@@ -8,11 +8,6 @@ import android.util.Log;
 
 import com.yarvis.assistant.processing.CommandType.CommunicationCommand;
 
-/**
- * Procesador de comandos de comunicación (llamadas, SMS, email).
- *
- * Demuestra: HERENCIA de clase abstracta, integración con intents de Android
- */
 public class CommunicationCommandProcessor extends CommandProcessor<CommunicationCommand> {
 
     private static final String TAG = "CommCommandProcessor";
@@ -34,7 +29,6 @@ public class CommunicationCommandProcessor extends CommandProcessor<Communicatio
     @Override
     protected boolean validate(CommunicationCommand command) {
         if (!super.validate(command)) return false;
-        // Requiere al menos un destinatario
         return command.getRecipient() != null && !command.getRecipient().isEmpty();
     }
 
@@ -129,7 +123,6 @@ public class CommunicationCommandProcessor extends CommandProcessor<Communicatio
             return CommandResult.failure(command.getId(), "Context not available");
         }
 
-        // Verificar si WhatsApp está instalado
         PackageManager pm = context.getPackageManager();
         try {
             pm.getPackageInfo("com.whatsapp", PackageManager.GET_ACTIVITIES);

@@ -18,10 +18,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.net.ssl.SSLSocketFactory;
 
-/**
- * Implementación ligera de WebSocket sin dependencias externas.
- * Soporta ws:// y wss:// (SSL).
- */
 public class WebSocketConnection {
 
     private static final String TAG = "WebSocketConnection";
@@ -95,7 +91,6 @@ public class WebSocketConnection {
                 port = ssl ? 443 : 80;
             }
 
-            // Crear socket
             if (ssl) {
                 socket = SSLSocketFactory.getDefault().createSocket(host, port);
             } else {
@@ -103,12 +98,11 @@ public class WebSocketConnection {
             }
 
             socket.setTcpNoDelay(true);
-            socket.setSoTimeout(0); // Sin timeout para lectura
+            socket.setSoTimeout(0);
 
             outputStream = socket.getOutputStream();
             inputStream = socket.getInputStream();
 
-            // Handshake WebSocket
             if (!performHandshake(host, port)) {
                 throw new IOException("WebSocket handshake failed");
             }
@@ -116,7 +110,6 @@ public class WebSocketConnection {
             connected.set(true);
             callback.onOpen();
 
-            // Iniciar lectura de frames
             readFrames();
 
         } catch (Exception e) {
@@ -127,17 +120,14 @@ public class WebSocketConnection {
     }
 
     private boolean performHandshake(String host, int port) throws IOException {
-        // Generar clave WebSocket
         byte[] keyBytes = new byte[16];
         new SecureRandom().nextBytes(keyBytes);
         String key = Base64.getEncoder().encodeToString(keyBytes);
 
-        // Construir path
         String path = uri.getPath();
         if (path == null || path.isEmpty()) path = "/";
         if (uri.getQuery() != null) path += "?" + uri.getQuery();
 
-        // Enviar request HTTP
         String request = "GET " + path + " HTTP/1.1\r\n" +
                 "Host: " + host + (port != 80 && port != 443 ? ":" + port : "") + "\r\n" +
                 "Upgrade: websocket\r\n" +
@@ -149,7 +139,6 @@ public class WebSocketConnection {
         outputStream.write(request.getBytes());
         outputStream.flush();
 
-        // Leer respuesta
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         String line = reader.readLine();
 
@@ -158,7 +147,6 @@ public class WebSocketConnection {
             return false;
         }
 
-        // Leer headers hasta línea vacía
         String acceptKey = null;
         while ((line = reader.readLine()) != null && !line.isEmpty()) {
             if (line.toLowerCase().startsWith("sec-websocket-accept:")) {
@@ -166,7 +154,6 @@ public class WebSocketConnection {
             }
         }
 
-        // Verificar accept key
         String expectedKey = computeAcceptKey(key);
         if (!expectedKey.equals(acceptKey)) {
             Log.e(TAG, "Invalid accept key");
@@ -200,25 +187,21 @@ public class WebSocketConnection {
                 boolean masked = (secondByte & 0x80) != 0;
                 int payloadLength = secondByte & 0x7F;
 
-                // Extended payload length
                 if (payloadLength == 126) {
                     payloadLength = (inputStream.read() << 8) | inputStream.read();
                 } else if (payloadLength == 127) {
-                    // 64-bit length (skip high 4 bytes, read low 4)
                     inputStream.read(); inputStream.read();
                     inputStream.read(); inputStream.read();
                     payloadLength = (inputStream.read() << 24) | (inputStream.read() << 16) |
                             (inputStream.read() << 8) | inputStream.read();
                 }
 
-                // Masking key (si el servidor envía masked, lo cual es raro)
                 byte[] maskKey = null;
                 if (masked) {
                     maskKey = new byte[4];
                     inputStream.read(maskKey);
                 }
 
-                // Leer payload
                 byte[] payload = new byte[payloadLength];
                 int bytesRead = 0;
                 while (bytesRead < payloadLength) {
@@ -227,21 +210,19 @@ public class WebSocketConnection {
                     bytesRead += read;
                 }
 
-                // Unmask si es necesario
                 if (masked && maskKey != null) {
                     for (int i = 0; i < payload.length; i++) {
                         payload[i] ^= maskKey[i % 4];
                     }
                 }
 
-                // Procesar según opcode
                 switch (opcode) {
-                    case 0x1: // Text frame
+                    case 0x1:
                         String message = new String(payload, "UTF-8");
                         callback.onMessage(message);
                         break;
 
-                    case 0x8: // Close frame
+                    case 0x8:
                         int code = payloadLength >= 2 ?
                                 ((payload[0] & 0xFF) << 8) | (payload[1] & 0xFF) : 1000;
                         String reason = payloadLength > 2 ?
@@ -250,12 +231,11 @@ public class WebSocketConnection {
                         cleanup();
                         return;
 
-                    case 0x9: // Ping
+                    case 0x9:
                         sendPongFrame(payload);
                         break;
 
-                    case 0xA: // Pong
-                        // Ignorar
+                    case 0xA:
                         break;
                 }
             }
@@ -271,25 +251,22 @@ public class WebSocketConnection {
 
     private void sendFrame(String message) throws IOException {
         byte[] payload = message.getBytes("UTF-8");
-        sendFrame(0x1, payload); // Text frame
+        sendFrame(0x1, payload);
     }
 
     private void sendCloseFrame() throws IOException {
-        sendFrame(0x8, new byte[0]); // Close frame
+        sendFrame(0x8, new byte[0]);
     }
 
     private void sendPongFrame(byte[] payload) throws IOException {
-        sendFrame(0xA, payload); // Pong frame
+        sendFrame(0xA, payload);
     }
 
     private synchronized void sendFrame(int opcode, byte[] payload) throws IOException {
         if (outputStream == null) return;
 
-        // First byte: FIN + opcode
         outputStream.write(0x80 | opcode);
 
-        // Second byte: MASK + length
-        // Cliente siempre envía masked
         int length = payload.length;
         if (length < 126) {
             outputStream.write(0x80 | length);
@@ -304,12 +281,10 @@ public class WebSocketConnection {
             }
         }
 
-        // Masking key
         byte[] maskKey = new byte[4];
         new SecureRandom().nextBytes(maskKey);
         outputStream.write(maskKey);
 
-        // Masked payload
         for (int i = 0; i < payload.length; i++) {
             outputStream.write(payload[i] ^ maskKey[i % 4]);
         }

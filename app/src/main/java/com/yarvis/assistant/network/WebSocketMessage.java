@@ -7,14 +7,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Modelos de mensajes para comunicación WebSocket con el backend.
- */
 public class WebSocketMessage {
 
-    /**
-     * Mensaje base con tipo.
-     */
     public static class BaseMessage {
         public final String type;
 
@@ -33,18 +27,10 @@ public class WebSocketMessage {
         }
     }
 
-    // ==================== Contenido Enriquecido ====================
-
-    /**
-     * Tipos de contenido para mostrar en UI.
-     */
     public enum ShowContentType {
         TEXT, IMAGE, IMAGE_TEXT, LINK, LINKS, VIDEO, CARD, LIST
     }
 
-    /**
-     * Enlace para mostrar.
-     */
     public static class ShowLink {
         public final String title;
         public final String url;
@@ -68,9 +54,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Item de lista para mostrar.
-     */
     public static class ShowListItem {
         public final String title;
         public final String subtitle;
@@ -91,9 +74,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Contenido enriquecido para mostrar en la UI (vista previa).
-     */
     public static class ShowContent {
         public final ShowContentType type;
         public final String title;
@@ -166,11 +146,6 @@ public class WebSocketMessage {
         }
     }
 
-    // ==================== Mensajes del Cliente ====================
-
-    /**
-     * Comando de voz enviado al backend.
-     */
     public static class VoiceCommand extends BaseMessage {
         public final String text;
         public final long timestamp;
@@ -204,9 +179,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Mensaje de chat escrito enviado al backend.
-     */
     public static class ChatMessage extends BaseMessage {
         public final String text;
         public final long timestamp;
@@ -240,9 +212,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Notificación enviada al backend.
-     */
     public static class NotificationMessage extends BaseMessage {
         public final String app;
         public final String title;
@@ -270,9 +239,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Mensaje para terminar una conversación.
-     */
     public static class EndConversation extends BaseMessage {
         public final String sessionId;
         public final String reason;
@@ -299,20 +265,12 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Ping para mantener conexión viva.
-     */
     public static class Ping extends BaseMessage {
         public Ping() {
             super("ping");
         }
     }
 
-    // ==================== Mensajes del Servidor ====================
-
-    /**
-     * Respuesta del servidor con contenido enriquecido.
-     */
     public static class Response {
         public final String text;
         public final boolean speak;
@@ -329,9 +287,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Inicio de conversación desde el servidor.
-     */
     public static class StartConversation {
         public final String sessionId;
         public final String greeting;
@@ -346,9 +301,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Fin de conversación desde el servidor.
-     */
     public static class EndConversationResponse {
         public final String sessionId;
         public final String farewell;
@@ -361,9 +313,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Acción que el cliente debe ejecutar.
-     */
     public static class Action {
         public final String action;
         public final JSONObject params;
@@ -374,9 +323,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Error del servidor.
-     */
     public static class Error {
         public final String message;
 
@@ -385,9 +331,6 @@ public class WebSocketMessage {
         }
     }
 
-    /**
-     * Parsea un mensaje recibido del servidor.
-     */
     public static Object parseServerMessage(String jsonString) {
         try {
             JSONObject json = new JSONObject(jsonString);

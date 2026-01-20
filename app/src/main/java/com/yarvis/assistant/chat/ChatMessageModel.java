@@ -10,32 +10,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Modelo de mensaje para el historial de conversaciones.
- */
 public class ChatMessageModel {
 
     public enum MessageType {
-        USER_VOICE,     // Mensaje del usuario por voz
-        USER_TEXT,      // Mensaje del usuario por texto
-        ASSISTANT,      // Respuesta del asistente
-        SYSTEM,         // Mensaje del sistema (inicio/fin conversación, errores)
-        ACTION          // Acción ejecutada
+        USER_VOICE,
+        USER_TEXT,
+        ASSISTANT,
+        SYSTEM,
+        ACTION
     }
 
     public enum MessageStatus {
-        SENDING,        // Enviando al servidor
-        SENT,           // Enviado exitosamente
-        ERROR           // Error al enviar
+        SENDING,
+        SENT,
+        ERROR
     }
 
     private final String id;
     private final String sessionId;
     private final MessageType type;
-    private final String text;                      // Texto completo
+    private final String text;
     private final long timestamp;
     private MessageStatus status;
-    private final WebSocketMessage.ShowContent showContent;  // Contenido enriquecido (para vista previa)
+    private final WebSocketMessage.ShowContent showContent;
 
     private ChatMessageModel(Builder builder) {
         this.id = builder.id != null ? builder.id : UUID.randomUUID().toString();
@@ -47,7 +44,6 @@ public class ChatMessageModel {
         this.showContent = builder.showContent;
     }
 
-    // Getters
     public String getId() { return id; }
     public String getSessionId() { return sessionId; }
     public MessageType getType() { return type; }
@@ -68,10 +64,6 @@ public class ChatMessageModel {
         return type == MessageType.ASSISTANT;
     }
 
-    /**
-     * Obtiene el texto de preview para mostrar en la UI.
-     * Si hay ShowContent, usa ese. Si no, usa el texto completo truncado.
-     */
     public String getPreviewText() {
         if (showContent != null && showContent.text != null) {
             return showContent.text;
@@ -85,17 +77,12 @@ public class ChatMessageModel {
         return text;
     }
 
-    /**
-     * Verifica si el mensaje tiene contenido multimedia.
-     */
     public boolean hasMedia() {
         if (showContent == null) return false;
         return showContent.imageUrl != null ||
                showContent.videoUrl != null ||
                (showContent.links != null && !showContent.links.isEmpty());
     }
-
-    // ==================== Serialización JSON ====================
 
     public JSONObject toJson() throws JSONException {
         JSONObject json = new JSONObject();
@@ -170,8 +157,6 @@ public class ChatMessageModel {
         return WebSocketMessage.ShowContent.fromJson(json);
     }
 
-    // ==================== Builder ====================
-
     public static class Builder {
         private String id;
         private String sessionId;
@@ -226,8 +211,6 @@ public class ChatMessageModel {
             return new ChatMessageModel(this);
         }
     }
-
-    // ==================== Factory Methods ====================
 
     public static ChatMessageModel fromUserVoice(String text, String sessionId) {
         return new Builder()

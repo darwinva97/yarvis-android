@@ -17,9 +17,6 @@ import com.yarvis.assistant.settings.SettingsActivity;
 
 import java.util.Map;
 
-/**
- * MainActivity - muestra texto reconocido y comandos detectados.
- */
 public class MainActivity extends AppCompatActivity implements
         SpeechBroadcastReceiver.SpeechListener,
         VoiceServiceController.StateListener {
@@ -46,16 +43,13 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void initializeComponents() {
-        // Inicializar managers
         permissionManager = new PermissionManager(this);
         serviceController = new VoiceServiceController(this);
         serviceController.setStateListener(this);
 
-        // Inicializar receiver
         speechReceiver = new SpeechBroadcastReceiver();
         speechReceiver.setListener(this);
 
-        // Inicializar UI manager
         uiManager = new MainUIManager(
                 findViewById(R.id.status_text),
                 findViewById(R.id.recognized_text),
@@ -65,13 +59,9 @@ public class MainActivity extends AppCompatActivity implements
                 findViewById(R.id.battery_optimization_button)
         );
 
-        // Iniciar WebSocketService si está habilitado
         startWebSocketServiceIfEnabled();
     }
 
-    /**
-     * Inicia el WebSocketService si la conexión al backend está habilitada.
-     */
     private void startWebSocketServiceIfEnabled() {
         ServerConfig serverConfig = new ServerConfig(this);
         if (serverConfig.isEnabled()) {
@@ -162,8 +152,6 @@ public class MainActivity extends AppCompatActivity implements
         );
     }
 
-    // SpeechBroadcastReceiver.SpeechListener implementation
-
     @Override
     public void onSpeechResult(String text) {
         uiManager.showSpeechResult(text);
@@ -178,8 +166,6 @@ public class MainActivity extends AppCompatActivity implements
     public void onCommandDetected(String command) {
         uiManager.showCommand(command);
     }
-
-    // VoiceServiceController.StateListener implementation
 
     @Override
     public void onServiceStateChanged(boolean isRunning) {

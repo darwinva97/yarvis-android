@@ -12,11 +12,6 @@ import android.util.Log;
 
 import com.yarvis.assistant.processing.CommandType.SystemCommand;
 
-/**
- * Procesador de comandos del sistema (WiFi, Bluetooth, etc.).
- *
- * Demuestra: HERENCIA de clase abstracta con comportamiento específico
- */
 public class SystemCommandProcessor extends CommandProcessor<SystemCommand> {
 
     private static final String TAG = "SystemCommandProcessor";
@@ -75,7 +70,6 @@ public class SystemCommandProcessor extends CommandProcessor<SystemCommand> {
             return CommandResult.failure(command.getId(), "Context not available");
         }
 
-        // En Android 10+ se requiere ir a Settings
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Intent intent = new Intent(Settings.Panel.ACTION_WIFI);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -182,7 +176,6 @@ public class SystemCommandProcessor extends CommandProcessor<SystemCommand> {
             return CommandResult.failure(command.getId(), "Context not available");
         }
 
-        // En Android moderno requiere permisos de sistema
         Intent intent = new Intent(Settings.ACTION_AIRPLANE_MODE_SETTINGS);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);

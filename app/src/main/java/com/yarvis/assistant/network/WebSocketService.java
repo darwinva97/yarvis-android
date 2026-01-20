@@ -19,10 +19,6 @@ import com.yarvis.assistant.R;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/**
- * Foreground Service dedicado para mantener la conexión WebSocket persistente.
- * Este servicio se mantiene activo independientemente del ciclo de vida de las Activities.
- */
 public class WebSocketService extends Service implements YarvisWebSocketClient.ConnectionListener {
 
     private static final String TAG = "WebSocketService";
@@ -46,9 +42,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
     private boolean isConnected = false;
     private boolean isAuthenticated = false;
 
-    /**
-     * Listener para cambios de estado de conexión.
-     */
     public interface ConnectionStateListener {
         void onConnectionStateChanged(boolean connected, boolean authenticated);
     }
@@ -107,41 +100,24 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         isRunning = false;
     }
 
-    // ==================== Public API ====================
-
-    /**
-     * Obtiene el cliente WebSocket.
-     */
     public YarvisWebSocketClient getWebSocketClient() {
         return webSocketClient;
     }
 
-    /**
-     * Verifica si está conectado.
-     */
     public boolean isConnected() {
         return isConnected && webSocketClient != null && webSocketClient.isConnected();
     }
 
-    /**
-     * Verifica si está autenticado.
-     */
     public boolean isAuthenticated() {
         return isAuthenticated;
     }
 
-    /**
-     * Conecta al backend si está habilitado en la configuración.
-     */
     public void connectIfEnabled() {
         if (serverConfig.isEnabled()) {
             connect();
         }
     }
 
-    /**
-     * Conecta al backend con la configuración actual.
-     */
     public void connect() {
         String serverUrl = serverConfig.getServerUrl();
         String password = serverConfig.getPassword();
@@ -152,7 +128,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
             return;
         }
 
-        // Desconectar si ya existe una conexión
         if (webSocketClient != null) {
             webSocketClient.destroy();
         }
@@ -164,9 +139,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         Log.d(TAG, "Connecting to: " + serverUrl + " as " + agentName);
     }
 
-    /**
-     * Desconecta del backend.
-     */
     public void disconnect() {
         isConnected = false;
         isAuthenticated = false;
@@ -179,9 +151,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         Log.d(TAG, "Disconnected");
     }
 
-    /**
-     * Reconecta al backend (desconecta y vuelve a conectar).
-     */
     public void reconnect() {
         disconnect();
         if (serverConfig.isEnabled()) {
@@ -189,9 +158,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         }
     }
 
-    /**
-     * Actualiza las credenciales y reconecta si es necesario.
-     */
     public void updateCredentials(String serverUrl, String password, String agentName, boolean enabled) {
         serverConfig.setServerUrl(serverUrl);
         serverConfig.setPassword(password);
@@ -205,38 +171,23 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         }
     }
 
-    // ==================== Listeners Management ====================
-
-    /**
-     * Agrega un listener para cambios de estado de conexión.
-     */
     public void addConnectionStateListener(ConnectionStateListener listener) {
         if (!stateListeners.contains(listener)) {
             stateListeners.add(listener);
-            // Notificar estado actual
             listener.onConnectionStateChanged(isConnected, isAuthenticated);
         }
     }
 
-    /**
-     * Elimina un listener de estado de conexión.
-     */
     public void removeConnectionStateListener(ConnectionStateListener listener) {
         stateListeners.remove(listener);
     }
 
-    /**
-     * Agrega un listener para mensajes del WebSocket.
-     */
     public void addMessageListener(YarvisWebSocketClient.ConnectionListener listener) {
         if (!messageListeners.contains(listener)) {
             messageListeners.add(listener);
         }
     }
 
-    /**
-     * Elimina un listener de mensajes.
-     */
     public void removeMessageListener(YarvisWebSocketClient.ConnectionListener listener) {
         messageListeners.remove(listener);
     }
@@ -246,8 +197,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
             listener.onConnectionStateChanged(isConnected, isAuthenticated);
         }
     }
-
-    // ==================== Notification ====================
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -323,8 +272,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
                 .build();
     }
 
-    // ==================== WebSocket Listener Implementation ====================
-
     @Override
     public void onConnected() {
         Log.i(TAG, "WebSocket connected");
@@ -332,7 +279,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         updateNotification();
         notifyConnectionStateChanged();
 
-        // Propagar a listeners
         for (YarvisWebSocketClient.ConnectionListener listener : messageListeners) {
             listener.onConnected();
         }
@@ -346,7 +292,6 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
         updateNotification();
         notifyConnectionStateChanged();
 
-        // Propagar a listeners
         for (YarvisWebSocketClient.ConnectionListener listener : messageListeners) {
             listener.onDisconnected();
         }

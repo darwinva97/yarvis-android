@@ -8,11 +8,6 @@ import android.view.KeyEvent;
 
 import com.yarvis.assistant.processing.CommandType.MediaCommand;
 
-/**
- * Procesador de comandos de medios (música, video).
- *
- * Demuestra: HERENCIA de clase abstracta, POLIMORFISMO
- */
 public class MediaCommandProcessor extends CommandProcessor<MediaCommand> {
 
     private static final String TAG = "MediaCommandProcessor";
@@ -35,7 +30,6 @@ public class MediaCommandProcessor extends CommandProcessor<MediaCommand> {
 
     @Override
     protected boolean validate(MediaCommand command) {
-        // Validación específica además de la base
         if (!super.validate(command)) {
             return false;
         }

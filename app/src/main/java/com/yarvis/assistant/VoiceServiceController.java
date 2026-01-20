@@ -4,9 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-/**
- * Controla el ciclo de vida del VoiceService.
- */
 public class VoiceServiceController {
 
     private final Context context;
@@ -26,9 +23,6 @@ public class VoiceServiceController {
         this.stateListener = listener;
     }
 
-    /**
-     * Inicia el VoiceService como foreground service.
-     */
     public void start() {
         Intent intent = new Intent(context, VoiceService.class);
         intent.setAction(VoiceService.ACTION_START);
@@ -43,9 +37,6 @@ public class VoiceServiceController {
         notifyStateChanged();
     }
 
-    /**
-     * Detiene el VoiceService.
-     */
     public void stop() {
         Intent intent = new Intent(context, VoiceService.class);
         intent.setAction(VoiceService.ACTION_STOP);
@@ -55,9 +46,6 @@ public class VoiceServiceController {
         notifyStateChanged();
     }
 
-    /**
-     * Alterna el estado del servicio.
-     */
     public void toggle() {
         if (isRunning) {
             stop();
@@ -66,9 +54,6 @@ public class VoiceServiceController {
         }
     }
 
-    /**
-     * Sincroniza el estado con el servicio real.
-     */
     public void syncState() {
         isRunning = VoiceService.isRunning();
         notifyStateChanged();

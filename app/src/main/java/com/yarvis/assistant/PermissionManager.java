@@ -17,9 +17,6 @@ import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Gestiona todos los permisos requeridos por la aplicación.
- */
 public class PermissionManager {
 
     private final Context context;
@@ -28,17 +25,11 @@ public class PermissionManager {
         this.context = context;
     }
 
-    /**
-     * Verifica si el permiso de audio está concedido.
-     */
     public boolean hasAudioPermission() {
         return ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED;
     }
 
-    /**
-     * Verifica si el permiso de notificaciones está concedido (Android 13+).
-     */
     public boolean hasNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
@@ -47,9 +38,6 @@ public class PermissionManager {
         return true;
     }
 
-    /**
-     * Obtiene la lista de permisos necesarios que aún no están concedidos.
-     */
     public List<String> getMissingPermissions() {
         List<String> permissionsNeeded = new ArrayList<>();
 
@@ -64,9 +52,6 @@ public class PermissionManager {
         return permissionsNeeded;
     }
 
-    /**
-     * Solicita los permisos faltantes usando el launcher proporcionado.
-     */
     public void requestMissingPermissions(ActivityResultLauncher<String[]> launcher) {
         List<String> missing = getMissingPermissions();
         if (!missing.isEmpty()) {
@@ -74,16 +59,10 @@ public class PermissionManager {
         }
     }
 
-    /**
-     * Verifica si todos los permisos necesarios están concedidos.
-     */
     public boolean hasAllRequiredPermissions() {
         return getMissingPermissions().isEmpty();
     }
 
-    /**
-     * Verifica si la app tiene permiso para leer notificaciones del sistema.
-     */
     public boolean isNotificationAccessEnabled() {
         String pkgName = context.getPackageName();
         String flat = Settings.Secure.getString(context.getContentResolver(),
@@ -100,16 +79,10 @@ public class PermissionManager {
         return false;
     }
 
-    /**
-     * Crea un Intent para abrir los ajustes de acceso a notificaciones.
-     */
     public Intent getNotificationAccessSettingsIntent() {
         return new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
     }
 
-    /**
-     * Verifica si la app está excluida de la optimización de batería.
-     */
     public boolean isBatteryOptimizationIgnored() {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         if (pm != null) {
@@ -118,9 +91,6 @@ public class PermissionManager {
         return false;
     }
 
-    /**
-     * Crea un Intent para solicitar exclusión de optimización de batería.
-     */
     public Intent getBatteryOptimizationExclusionIntent() {
         Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
         intent.setData(Uri.parse("package:" + context.getPackageName()));

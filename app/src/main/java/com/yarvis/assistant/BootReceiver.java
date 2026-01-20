@@ -9,9 +9,6 @@ import android.util.Log;
 import com.yarvis.assistant.network.ServerConfig;
 import com.yarvis.assistant.network.WebSocketService;
 
-/**
- * Receiver que inicia VoiceService y WebSocketService cuando el dispositivo arranca.
- */
 public class BootReceiver extends BroadcastReceiver {
 
     private static final String TAG = "BootReceiver";
@@ -25,7 +22,6 @@ public class BootReceiver extends BroadcastReceiver {
 
             Log.d(TAG, "Boot completed or package replaced");
 
-            // Iniciar WebSocketService si está habilitado
             ServerConfig serverConfig = new ServerConfig(context);
             if (serverConfig.isEnabled()) {
                 Log.d(TAG, "Starting WebSocketService");
@@ -38,7 +34,6 @@ public class BootReceiver extends BroadcastReceiver {
                 }
             }
 
-            // Iniciar VoiceService
             Log.d(TAG, "Starting VoiceService");
             Intent serviceIntent = new Intent(context, VoiceService.class);
             serviceIntent.setAction(VoiceService.ACTION_START);

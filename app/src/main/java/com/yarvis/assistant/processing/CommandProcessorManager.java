@@ -12,20 +12,10 @@ import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Manager que coordina todos los procesadores de comandos.
- *
- * Demuestra:
- * - COMPOSICIÓN (tiene procesadores)
- * - POLIMORFISMO (usa procesadores de forma genérica)
- * - SINGLETON pattern
- * - DELEGATION pattern
- */
 public class CommandProcessorManager {
 
     private static final String TAG = "CommandProcessorManager";
 
-    // Singleton
     private static volatile CommandProcessorManager instance;
 
     private final WeakReference<Context> contextRef;
@@ -33,10 +23,6 @@ public class CommandProcessorManager {
     private final Repository<CommandType> commandHistory;
     private final CommandParser parser;
 
-    /**
-     * Clase interna estática para parsear comandos de texto.
-     * Demuestra: CLASE INTERNA ESTÁTICA con patrones de diseño
-     */
     private static class CommandParser {
 
         private static final Pattern MEDIA_PATTERN = Pattern.compile(
@@ -63,10 +49,6 @@ public class CommandProcessorManager {
                 "(qué día|fecha|what day|qué fecha)",
                 Pattern.CASE_INSENSITIVE);
 
-        /**
-         * Parsea texto de voz a un CommandType.
-         * Demuestra uso del VISITOR PATTERN internamente
-         */
         Optional<CommandType> parse(String text) {
             if (text == null || text.isEmpty()) {
                 return Optional.empty();
@@ -74,22 +56,18 @@ public class CommandProcessorManager {
 
             String normalizedText = text.toLowerCase().trim();
 
-            // Intentar cada patrón
             Matcher matcher;
 
-            // Media commands
             matcher = MEDIA_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(parseMediaCommand(matcher.group(1)));
             }
 
-            // System commands
             matcher = SYSTEM_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(parseSystemCommand(matcher.group(1), matcher.group(2)));
             }
 
-            // Call commands
             matcher = CALL_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(new CommunicationCommand(
@@ -100,7 +78,6 @@ public class CommandProcessorManager {
                 ));
             }
 
-            // SMS commands
             matcher = SMS_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(new CommunicationCommand(
@@ -111,7 +88,6 @@ public class CommandProcessorManager {
                 ));
             }
 
-            // Time query
             matcher = TIME_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(new QueryCommand(
@@ -121,7 +97,6 @@ public class CommandProcessorManager {
                 ));
             }
 
-            // Date query
             matcher = DATE_PATTERN.matcher(normalizedText);
             if (matcher.find()) {
                 return Optional.of(new QueryCommand(
@@ -131,7 +106,6 @@ public class CommandProcessorManager {
                 ));
             }
 
-            // Default: General query
             return Optional.of(new QueryCommand(
                     generateId(),
                     QueryCommand.QueryType.GENERAL,
@@ -219,10 +193,6 @@ public class CommandProcessorManager {
         }
     }
 
-    // =========================================================================
-    // SINGLETON IMPLEMENTATION
-    // =========================================================================
-
     private CommandProcessorManager(Context context) {
         this.contextRef = new WeakReference<>(context.getApplicationContext());
         this.processors = new ArrayList<>();
@@ -232,10 +202,6 @@ public class CommandProcessorManager {
         initializeProcessors(context);
     }
 
-    /**
-     * Obtiene la instancia singleton.
-     * Demuestra: DOUBLE-CHECKED LOCKING para thread-safety
-     */
     public static CommandProcessorManager getInstance(Context context) {
         if (instance == null) {
             synchronized (CommandProcessorManager.class) {
@@ -255,14 +221,6 @@ public class CommandProcessorManager {
         Log.d(TAG, "Initialized " + processors.size() + " command processors");
     }
 
-    // =========================================================================
-    // PUBLIC API
-    // =========================================================================
-
-    /**
-     * Procesa un comando de texto usando el procesador apropiado.
-     * Demuestra: POLIMORFISMO - selecciona dinámicamente el procesador correcto
-     */
     @SuppressWarnings("unchecked")
     public void processText(String text, ResultCallback<CommandResult> callback) {
         Log.d(TAG, "Processing text: " + text);
@@ -277,7 +235,6 @@ public class CommandProcessorManager {
         CommandType command = commandOpt.get();
         commandHistory.add(command);
 
-        // Encontrar procesador apropiado usando POLIMORFISMO
         for (CommandProcessor processor : processors) {
             if (processor.canHandle(command)) {
                 Log.d(TAG, "Using processor: " + processor.getProcessorName());
@@ -290,9 +247,6 @@ public class CommandProcessorManager {
                 "No hay procesador disponible para: " + command.getCategory()));
     }
 
-    /**
-     * Procesa un comando específico directamente.
-     */
     @SuppressWarnings("unchecked")
     public void processCommand(CommandType command, ResultCallback<CommandResult> callback) {
         commandHistory.add(command);
@@ -307,24 +261,14 @@ public class CommandProcessorManager {
         callback.onResult(CommandResult.failure(command.getId(), "No processor found"));
     }
 
-    /**
-     * Usa el patrón Visitor para procesar comandos de forma type-safe.
-     * Demuestra: VISITOR PATTERN con genéricos
-     */
     public <R> R processWithVisitor(CommandType command, CommandType.CommandVisitor<R> visitor) {
         return command.accept(visitor);
     }
 
-    /**
-     * Obtiene el historial de comandos.
-     */
     public Repository<CommandType> getCommandHistory() {
         return commandHistory;
     }
 
-    /**
-     * Limpia recursos.
-     */
     public void shutdown() {
         for (CommandProcessor<?> processor : processors) {
             processor.shutdown();

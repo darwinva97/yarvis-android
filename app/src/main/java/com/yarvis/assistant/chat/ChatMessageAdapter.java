@@ -19,9 +19,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Adapter para mostrar mensajes en el RecyclerView del chat.
- */
 public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_USER = 0;
@@ -118,14 +115,12 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         holder.textView.setText(message.getText());
         holder.timeView.setText(timeFormat.format(new Date(message.getTimestamp())));
 
-        // Icono de voz si es mensaje de voz
         if (message.getType() == ChatMessageModel.MessageType.USER_VOICE) {
             holder.voiceIcon.setVisibility(View.VISIBLE);
         } else {
             holder.voiceIcon.setVisibility(View.GONE);
         }
 
-        // Estado del mensaje
         switch (message.getStatus()) {
             case SENDING:
                 holder.statusIcon.setImageResource(android.R.drawable.ic_popup_sync);
@@ -143,24 +138,18 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     }
 
     private void bindAssistantMessage(AssistantMessageViewHolder holder, ChatMessageModel message) {
-        // Texto - usar preview si está disponible
         String displayText = message.getPreviewText();
         holder.textView.setText(displayText);
         holder.timeView.setText(timeFormat.format(new Date(message.getTimestamp())));
 
-        // Contenido enriquecido
         WebSocketMessage.ShowContent show = message.getShowContent();
         if (show != null) {
-            // Imagen
             if (show.imageUrl != null) {
                 holder.previewImage.setVisibility(View.VISIBLE);
-                // TODO: Cargar imagen con Glide/Picasso
-                // Glide.with(holder.itemView).load(show.imageUrl).into(holder.previewImage);
             } else {
                 holder.previewImage.setVisibility(View.GONE);
             }
 
-            // Links
             if (show.links != null && !show.links.isEmpty()) {
                 holder.linksContainer.setVisibility(View.VISIBLE);
                 holder.linksContainer.removeAllViews();
@@ -181,7 +170,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                 holder.linksContainer.setVisibility(View.GONE);
             }
 
-            // Indicador de "ver más" si el texto completo es más largo
             if (message.getText() != null && message.getText().length() > 150) {
                 holder.expandIndicator.setVisibility(View.VISIBLE);
             } else {
@@ -194,7 +182,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
                     message.getText() != null && message.getText().length() > 150 ? View.VISIBLE : View.GONE);
         }
 
-        // Click para expandir
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) {
                 clickListener.onMessageClick(message);
@@ -205,8 +192,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
     private void bindSystemMessage(SystemMessageViewHolder holder, ChatMessageModel message) {
         holder.textView.setText(message.getText());
     }
-
-    // ==================== ViewHolders ====================
 
     static class UserMessageViewHolder extends RecyclerView.ViewHolder {
         final TextView textView;

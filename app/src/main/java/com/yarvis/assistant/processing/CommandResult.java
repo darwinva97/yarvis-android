@@ -4,18 +4,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Clase inmutable que simula un Record de Java 16+.
- * En Java 16+ esto sería: record CommandResult(boolean success, String message, ...)
- *
- * Demuestra: RECORDS (patrón para Java < 16) e INMUTABILIDAD
- *
- * Características de un record:
- * - Todos los campos son final
- * - Constructor canónico
- * - Getters automáticos (aquí implementados manualmente)
- * - equals(), hashCode(), toString() implementados
- */
 public final class CommandResult implements Identifiable {
 
     private final String id;
@@ -25,9 +13,6 @@ public final class CommandResult implements Identifiable {
     private final long executionTimeMs;
     private final Map<String, Object> metadata;
 
-    /**
-     * Constructor canónico (como en records).
-     */
     public CommandResult(String id, boolean success, String message, String commandId,
                          long executionTimeMs, Map<String, Object> metadata) {
         this.id = Objects.requireNonNull(id, "id cannot be null");
@@ -39,10 +24,6 @@ public final class CommandResult implements Identifiable {
                 ? Collections.unmodifiableMap(metadata)
                 : Collections.emptyMap();
     }
-
-    // =========================================================================
-    // ACCESSORS (equivalentes a los generados automáticamente en records)
-    // =========================================================================
 
     @Override
     public String getId() { return id; }
@@ -56,10 +37,6 @@ public final class CommandResult implements Identifiable {
     public long executionTimeMs() { return executionTimeMs; }
 
     public Map<String, Object> metadata() { return metadata; }
-
-    // =========================================================================
-    // FACTORY METHODS (patrón común con records)
-    // =========================================================================
 
     public static CommandResult success(String commandId, String message) {
         return new CommandResult(
@@ -109,10 +86,6 @@ public final class CommandResult implements Identifiable {
         return "result_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 1000);
     }
 
-    // =========================================================================
-    // EQUALS, HASHCODE, TOSTRING (como genera un record)
-    // =========================================================================
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -143,22 +116,11 @@ public final class CommandResult implements Identifiable {
                 ']';
     }
 
-    // =========================================================================
-    // COPY METHOD (with pattern - común en records con Kotlin o Scala)
-    // =========================================================================
-
-    /**
-     * Crea una copia con un mensaje diferente.
-     * Simula el método copy() de data classes.
-     */
     public CommandResult withMessage(String newMessage) {
         return new CommandResult(this.id, this.success, newMessage,
                 this.commandId, this.executionTimeMs, this.metadata);
     }
 
-    /**
-     * Crea una copia con metadata adicional.
-     */
     public CommandResult withMetadata(Map<String, Object> newMetadata) {
         return new CommandResult(this.id, this.success, this.message,
                 this.commandId, this.executionTimeMs, newMetadata);

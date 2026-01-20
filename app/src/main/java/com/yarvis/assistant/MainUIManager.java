@@ -4,9 +4,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-/**
- * Gestiona las actualizaciones de la UI de MainActivity.
- */
 public class MainUIManager {
 
     private final TextView statusText;
@@ -32,9 +29,6 @@ public class MainUIManager {
         this.batteryOptimizationButton = batteryOptimizationButton;
     }
 
-    /**
-     * Actualiza la UI según el estado del servicio.
-     */
     public void updateServiceState(boolean isRunning) {
         if (isRunning) {
             statusText.setText("Escuchando...");
@@ -45,9 +39,6 @@ public class MainUIManager {
         }
     }
 
-    /**
-     * Actualiza la visibilidad de los botones de permisos.
-     */
     public void updatePermissionButtons(boolean notificationAccessEnabled, boolean batteryOptimizationIgnored) {
         notificationPermissionButton.setVisibility(
                 notificationAccessEnabled ? View.GONE : View.VISIBLE
@@ -57,38 +48,23 @@ public class MainUIManager {
         );
     }
 
-    /**
-     * Muestra el resultado del reconocimiento de voz.
-     */
     public void showSpeechResult(String text) {
         recognizedText.setText("\"" + text + "\"");
     }
 
-    /**
-     * Muestra el resultado parcial del reconocimiento.
-     */
     public void showSpeechPartial(String text) {
         recognizedText.setText(text + "...");
     }
 
-    /**
-     * Muestra el comando detectado.
-     */
     public void showCommand(String command) {
         commandText.setText(command);
     }
 
-    /**
-     * Limpia los textos de reconocimiento y comando.
-     */
     public void clearRecognitionTexts() {
         recognizedText.setText("");
         commandText.setText("");
     }
 
-    /**
-     * Muestra un mensaje de estado.
-     */
     public void showStatus(String message) {
         statusText.setText(message);
     }

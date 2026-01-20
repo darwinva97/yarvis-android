@@ -6,9 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 
-/**
- * Receiver para broadcasts del VoiceService.
- */
 public class SpeechBroadcastReceiver extends BroadcastReceiver {
 
     public interface SpeechListener {
@@ -54,9 +51,6 @@ public class SpeechBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    /**
-     * Crea el IntentFilter para los broadcasts del VoiceService.
-     */
     public static IntentFilter createIntentFilter() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(VoiceService.ACTION_SPEECH_RESULT);
@@ -65,9 +59,6 @@ public class SpeechBroadcastReceiver extends BroadcastReceiver {
         return filter;
     }
 
-    /**
-     * Registra el receiver en el contexto dado.
-     */
     public void register(Context context) {
         IntentFilter filter = createIntentFilter();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -77,14 +68,10 @@ public class SpeechBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    /**
-     * Des-registra el receiver del contexto.
-     */
     public void unregister(Context context) {
         try {
             context.unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
-            // Receiver not registered
         }
     }
 }

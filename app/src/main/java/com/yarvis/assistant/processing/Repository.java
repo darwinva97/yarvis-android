@@ -7,13 +7,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-/**
- * Clase genérica que implementa el patrón Repository.
- *
- * Demuestra: GENÉRICOS PROPIOS con BOUNDED TYPE PARAMETERS
- *
- * @param <T> Tipo de entidad que debe implementar {@link Identifiable}
- */
 public class Repository<T extends Identifiable> {
 
     private final List<T> items;
