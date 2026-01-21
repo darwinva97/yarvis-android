@@ -137,7 +137,7 @@ export class WorkflowClient {
       const data = await response.json();
       return {
         success: true,
-        ...data,
+        ...data.output,
       };
     } catch (error) {
       if (error instanceof Error) {
