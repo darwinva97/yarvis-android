@@ -171,6 +171,12 @@ export interface WorkflowEndpointConfig {
   password: string;
 }
 
+export interface ApiAuthConfig {
+  username: string;
+  password: string;
+  enabled: boolean;
+}
+
 export interface ServerConfig {
   port: number;
   workflowDev: WorkflowEndpointConfig;   // Configuración de workflow de desarrollo
@@ -181,4 +187,5 @@ export interface ServerConfig {
   mockDelay: number;           // Delay simulado en modo mock (ms)
   password: string;            // Contraseña para autenticación de clientes
   passwordFilePath: string;    // Archivo para persistir la contraseña
+  apiAuth: ApiAuthConfig;      // BasicAuth para endpoints API (n8n -> backend)
 }

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import type {
   SpeakRequest,
   SpeakResponse,
@@ -11,10 +11,43 @@ import { connections } from './connections.js';
 import { SessionManager } from './sessions.js';
 
 /**
+ * Middleware de Basic Authentication para endpoints de API
+ */
+function createBasicAuthMiddleware(config: ServerConfig) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    // Si no está habilitado, pasar
+    if (!config.apiAuth.enabled) {
+      next();
+      return;
+    }
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      res.setHeader('WWW-Authenticate', 'Basic realm="Yarvis API"');
+      res.status(401).json({ error: 'Authentication required' });
+      return;
+    }
+
+    const base64Credentials = authHeader.slice(6);
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+
+    if (username === config.apiAuth.username && password === config.apiAuth.password) {
+      next();
+      return;
+    }
+
+    res.status(401).json({ error: 'Invalid credentials' });
+  };
+}
+
+/**
  * Crea el router con todos los endpoints REST API
  */
 export function createRoutes(config: ServerConfig, sessions: SessionManager): Router {
   const router = Router();
+  const basicAuth = createBasicAuthMiddleware(config);
 
   // ==================== Health & Info ====================
 
@@ -45,12 +78,13 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
   });
 
   // ==================== API REST para sistemas de automatización ====================
+  // Estos endpoints requieren BasicAuth si está configurado
 
   /**
    * POST /api/speak
    * Sistema de automatización envía un mensaje para que Yarvis lo hable.
    */
-  router.post('/api/speak', (req, res) => {
+  router.post('/api/speak', basicAuth, (req, res) => {
     try {
       const body = req.body as SpeakRequest;
       const { text, clientId, startConversation, context } = body;
@@ -131,7 +165,7 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
   /**
    * POST /api/end-conversation
    */
-  router.post('/api/end-conversation', (req, res) => {
+  router.post('/api/end-conversation', basicAuth, (req, res) => {
     try {
       const body = req.body as EndConversationRequest;
       const { sessionId, clientId, farewell, reason = 'agent_decision' } = body;
@@ -181,7 +215,7 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
   /**
    * POST /api/broadcast
    */
-  router.post('/api/broadcast', (req, res) => {
+  router.post('/api/broadcast', basicAuth, (req, res) => {
     try {
       const body = req.body as BroadcastRequest;
       const { text, speak } = body;
@@ -214,7 +248,7 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
   /**
    * GET /api/sessions
    */
-  router.get('/api/sessions', (req, res) => {
+  router.get('/api/sessions', basicAuth, (req, res) => {
     const response: SessionsResponse = {
       sessions: sessions.getAllSessions(),
       totalClients: connections.size,
@@ -225,7 +259,7 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
   /**
    * GET /api/clients
    */
-  router.get('/api/clients', (req, res) => {
+  router.get('/api/clients', basicAuth, (req, res) => {
     const clients = connections.getAllClientIds().map((id) => ({
       id,
       hasActiveSession: sessions.hasActiveSession(id),

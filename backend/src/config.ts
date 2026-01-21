@@ -58,4 +58,9 @@ export const config: ServerConfig = {
   mockDelay: Number(process.env.MOCK_DELAY) || 500,
   password: loadPassword(),
   passwordFilePath: PASSWORD_FILE,
+  apiAuth: {
+    username: process.env.API_AUTH_USERNAME || '',
+    password: process.env.API_AUTH_PASSWORD || '',
+    enabled: !!(process.env.API_AUTH_USERNAME && process.env.API_AUTH_PASSWORD),
+  },
 };
