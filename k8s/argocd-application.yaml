@@ -23,7 +23,7 @@ spec:
   destination:
     # CAMBIAR: URL de tu cluster (o 'https://kubernetes.default.svc' para in-cluster)
     server: https://kubernetes.default.svc
-    namespace: yarvis
+    namespace: apps-yarvis
 
   syncPolicy:
     automated:

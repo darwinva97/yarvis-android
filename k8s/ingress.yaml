@@ -8,7 +8,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: yarvis-backend
-  namespace: yarvis
+  namespace: apps-yarvis
   labels:
     app.kubernetes.io/name: yarvis
     app.kubernetes.io/component: backend

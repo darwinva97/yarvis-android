@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: yarvis-backend
-  namespace: yarvis
+  namespace: apps-yarvis
   labels:
     app.kubernetes.io/name: yarvis
     app.kubernetes.io/component: backend
