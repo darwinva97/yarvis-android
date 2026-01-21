@@ -86,12 +86,14 @@ async function handleTextMessage(
   clientId: string,
   text: string,
   speak: boolean,
+  production: boolean,
   sessions: SessionManager,
   workflow: WorkflowClient | MockWorkflowClient,
   sendResponse: SendResponse
 ): Promise<void> {
   const logType = speak ? 'Voice' : 'Chat';
-  console.log(`[${logType}] Client ${clientId}: "${text}"`);
+  const envLabel = production ? 'PROD' : 'DEV';
+  console.log(`[${logType}] [${envLabel}] Client ${clientId}: "${text}"`);
 
   const activeSession = sessions.getActiveSessionForClient(clientId);
   if (activeSession) {
@@ -112,7 +114,8 @@ async function handleTextMessage(
   const result = await workflow.sendVoiceCommand(
     text,
     activeSession?.id,
-    activeSession?.context
+    activeSession?.context,
+    production
   );
 
   processWorkflowResponse(result, activeSession, speak, sendResponse, sessions);
@@ -126,13 +129,15 @@ async function handleNotification(
   app: string,
   title: string,
   text: string,
+  production: boolean,
   sessions: SessionManager,
   workflow: WorkflowClient | MockWorkflowClient,
   sendResponse: SendResponse
 ): Promise<void> {
-  console.log(`[Notification] ${app}: ${title}`);
+  const envLabel = production ? 'PROD' : 'DEV';
+  console.log(`[Notification] [${envLabel}] ${app}: ${title}`);
 
-  const result = await workflow.sendNotification(app, title, text);
+  const result = await workflow.sendNotification(app, title, text, production);
 
   if (result.success && result.response) {
     if (result.action === 'START_CONVERSATION') {
@@ -172,6 +177,7 @@ export async function handleClientMessage(
         clientId,
         message.text,
         true,
+        message.production ?? false,
         sessions,
         workflow,
         sendResponse
@@ -183,6 +189,7 @@ export async function handleClientMessage(
         clientId,
         message.text,
         false,
+        message.production ?? false,
         sessions,
         workflow,
         sendResponse
@@ -195,6 +202,7 @@ export async function handleClientMessage(
         message.app,
         message.title,
         message.text,
+        message.production ?? false,
         sessions,
         workflow,
         sendResponse

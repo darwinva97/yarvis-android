@@ -33,6 +33,11 @@
     <string name="settings_connect">Conectar al Backend</string>
     <string name="settings_connect_description">Habilita la conexión con el servidor</string>
     <string name="settings_save">Guardar Configuración</string>
+    <string name="settings_section_environment">Entorno de Workflow</string>
+    <string name="settings_production_mode">Modo Producción</string>
+    <string name="settings_production_description">Usa el workflow de producción en lugar de desarrollo</string>
+    <string name="settings_env_dev">Desarrollo</string>
+    <string name="settings_env_prod">Producción</string>
     <string name="settings_section_password">Cambiar Contraseña del Servidor</string>
     <string name="settings_password_info">Cambiar la contraseña requiere estar conectado al servidor. La nueva contraseña se aplicará a todas las conexiones.</string>
     <string name="settings_current_password">Contraseña Actual</string>

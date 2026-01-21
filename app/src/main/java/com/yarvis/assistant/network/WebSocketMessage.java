@@ -175,16 +175,22 @@ public class WebSocketMessage {
         public final String text;
         public final long timestamp;
         public final String sessionId;
+        public final boolean production;
 
-        public VoiceCommand(String text, String sessionId) {
+        public VoiceCommand(String text, String sessionId, boolean production) {
             super("voice_command");
             this.text = text;
             this.timestamp = System.currentTimeMillis();
             this.sessionId = sessionId;
+            this.production = production;
+        }
+
+        public VoiceCommand(String text, String sessionId) {
+            this(text, sessionId, false);
         }
 
         public VoiceCommand(String text) {
-            this(text, null);
+            this(text, null, false);
         }
 
         @Override
@@ -194,6 +200,7 @@ public class WebSocketMessage {
                 json.put("type", type);
                 json.put("text", text);
                 json.put("timestamp", timestamp);
+                json.put("production", production);
                 if (sessionId != null) {
                     json.put("sessionId", sessionId);
                 }
@@ -211,16 +218,22 @@ public class WebSocketMessage {
         public final String text;
         public final long timestamp;
         public final String sessionId;
+        public final boolean production;
 
-        public ChatMessage(String text, String sessionId) {
+        public ChatMessage(String text, String sessionId, boolean production) {
             super("chat_message");
             this.text = text;
             this.timestamp = System.currentTimeMillis();
             this.sessionId = sessionId;
+            this.production = production;
+        }
+
+        public ChatMessage(String text, String sessionId) {
+            this(text, sessionId, false);
         }
 
         public ChatMessage(String text) {
-            this(text, null);
+            this(text, null, false);
         }
 
         @Override
@@ -230,6 +243,7 @@ public class WebSocketMessage {
                 json.put("type", type);
                 json.put("text", text);
                 json.put("timestamp", timestamp);
+                json.put("production", production);
                 if (sessionId != null) {
                     json.put("sessionId", sessionId);
                 }
@@ -247,12 +261,18 @@ public class WebSocketMessage {
         public final String app;
         public final String title;
         public final String text;
+        public final boolean production;
 
-        public NotificationMessage(String app, String title, String text) {
+        public NotificationMessage(String app, String title, String text, boolean production) {
             super("notification");
             this.app = app;
             this.title = title;
             this.text = text;
+            this.production = production;
+        }
+
+        public NotificationMessage(String app, String title, String text) {
+            this(app, title, text, false);
         }
 
         @Override
@@ -263,6 +283,7 @@ public class WebSocketMessage {
                 json.put("app", app);
                 json.put("title", title);
                 json.put("text", text);
+                json.put("production", production);
                 return json.toString();
             } catch (JSONException e) {
                 return "{}";

@@ -13,12 +13,14 @@ public class ServerConfig {
     private static final String KEY_ENABLED = "backend_enabled";
     private static final String KEY_AGENT_NAME = "agent_name";
     private static final String KEY_PASSWORD = "backend_password";
+    private static final String KEY_PRODUCTION_MODE = "production_mode";
 
     // Valores por defecto
     private static final String DEFAULT_SERVER_URL = "ws://192.168.18.21:3000/ws";
     private static final boolean DEFAULT_ENABLED = false; // Por defecto desconectado hasta configurar
     private static final String DEFAULT_AGENT_NAME = "Yarvis";
     private static final String DEFAULT_PASSWORD = "PasswordJarvis2026!";
+    private static final boolean DEFAULT_PRODUCTION_MODE = false; // Por defecto usa desarrollo
 
     private final SharedPreferences prefs;
 
@@ -89,5 +91,19 @@ public class ServerConfig {
         String url = getServerUrl();
         String password = getPassword();
         return url != null && !url.isEmpty() && password != null && !password.isEmpty();
+    }
+
+    /**
+     * Verifica si está en modo producción.
+     */
+    public boolean isProductionMode() {
+        return prefs.getBoolean(KEY_PRODUCTION_MODE, DEFAULT_PRODUCTION_MODE);
+    }
+
+    /**
+     * Establece el modo de producción.
+     */
+    public void setProductionMode(boolean production) {
+        prefs.edit().putBoolean(KEY_PRODUCTION_MODE, production).apply();
     }
 }

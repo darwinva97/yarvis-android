@@ -42,7 +42,16 @@ export function savePassword(password: string): boolean {
  */
 export const config: ServerConfig = {
   port: Number(process.env.PORT) || 3000,
-  workflowWebhookUrl: process.env.WORKFLOW_WEBHOOK_URL || 'http://localhost:5678/webhook/yarvis',
+  workflowDev: {
+    url: process.env.WORKFLOW_WEBHOOK_URL_DEV || 'http://localhost:5678/webhook/yarvis-dev',
+    username: process.env.WORKFLOW_WEBHOOK_USERNAME_DEV || '',
+    password: process.env.WORKFLOW_WEBHOOK_PASSWORD_DEV || '',
+  },
+  workflowProd: {
+    url: process.env.WORKFLOW_WEBHOOK_URL_PROD || 'http://localhost:5678/webhook/yarvis-prod',
+    username: process.env.WORKFLOW_WEBHOOK_USERNAME_PROD || '',
+    password: process.env.WORKFLOW_WEBHOOK_PASSWORD_PROD || '',
+  },
   workflowTimeout: Number(process.env.WORKFLOW_TIMEOUT) || 30000,
   sessionTimeout: Number(process.env.SESSION_TIMEOUT) || 5 * 60 * 1000, // 5 minutos
   mockMode: process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1',

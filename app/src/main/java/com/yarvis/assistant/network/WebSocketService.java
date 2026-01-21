@@ -159,9 +159,11 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
 
         webSocketClient = new YarvisWebSocketClient(serverUrl);
         webSocketClient.setCredentials(password, agentName);
+        webSocketClient.setProductionMode(serverConfig.isProductionMode());
         webSocketClient.setListener(this);
         webSocketClient.connect();
-        Log.d(TAG, "Connecting to: " + serverUrl + " as " + agentName);
+        String envLabel = serverConfig.isProductionMode() ? "PROD" : "DEV";
+        Log.d(TAG, "Connecting to: " + serverUrl + " as " + agentName + " [" + envLabel + "]");
     }
 
     /**
@@ -202,6 +204,19 @@ public class WebSocketService extends Service implements YarvisWebSocketClient.C
             reconnect();
         } else {
             disconnect();
+        }
+    }
+
+    /**
+     * Actualiza el modo de producción en tiempo real.
+     * No requiere reconexión, se aplica a los siguientes mensajes.
+     */
+    public void updateProductionMode(boolean production) {
+        serverConfig.setProductionMode(production);
+        if (webSocketClient != null) {
+            webSocketClient.setProductionMode(production);
+            String envLabel = production ? "PROD" : "DEV";
+            Log.d(TAG, "Production mode updated to: " + envLabel);
         }
     }
 

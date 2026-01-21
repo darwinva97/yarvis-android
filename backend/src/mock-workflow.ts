@@ -224,7 +224,8 @@ export class MockWorkflowClient {
   async sendVoiceCommand(
     text: string,
     sessionId?: string,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
+    production = false
   ): Promise<WorkflowResponse> {
     // Simular latencia de red
     await this.simulateDelay();
@@ -252,7 +253,8 @@ export class MockWorkflowClient {
   async sendNotification(
     app: string,
     title: string,
-    text: string
+    text: string,
+    production = false
   ): Promise<WorkflowResponse> {
     await this.simulateDelay();
 

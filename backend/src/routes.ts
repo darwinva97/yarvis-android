@@ -24,7 +24,8 @@ export function createRoutes(config: ServerConfig, sessions: SessionManager): Ro
       mockMode: config.mockMode,
       connections: connections.size,
       activeSessions: sessions.getAllSessions().length,
-      workflowUrl: config.mockMode ? null : config.workflowWebhookUrl,
+      workflowUrlDev: config.mockMode ? null : config.workflowDev.url,
+      workflowUrlProd: config.mockMode ? null : config.workflowProd.url,
     });
   });
 

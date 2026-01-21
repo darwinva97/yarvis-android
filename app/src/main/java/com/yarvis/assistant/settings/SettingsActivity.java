@@ -44,6 +44,10 @@ public class SettingsActivity extends AppCompatActivity implements
     private TextView connectionStatus;
     private Button saveConfigButton;
 
+    // Views de entorno
+    private SwitchCompat productionModeSwitch;
+    private TextView currentEnvLabel;
+
     // Views de cambio de contraseña
     private TextInputEditText currentPasswordInput;
     private TextInputEditText newPasswordInput;
@@ -122,6 +126,10 @@ public class SettingsActivity extends AppCompatActivity implements
         connectionStatus = findViewById(R.id.connection_status);
         saveConfigButton = findViewById(R.id.save_config_button);
 
+        // Entorno
+        productionModeSwitch = findViewById(R.id.production_mode_switch);
+        currentEnvLabel = findViewById(R.id.current_env_label);
+
         // Cambio de contraseña
         currentPasswordInput = findViewById(R.id.current_password_input);
         newPasswordInput = findViewById(R.id.new_password_input);
@@ -134,6 +142,8 @@ public class SettingsActivity extends AppCompatActivity implements
         backendUrlInput.setText(serverConfig.getServerUrl());
         backendPasswordInput.setText(serverConfig.getPassword());
         connectSwitch.setChecked(serverConfig.isEnabled());
+        productionModeSwitch.setChecked(serverConfig.isProductionMode());
+        updateEnvLabel(serverConfig.isProductionMode());
 
         updateConnectionUI(false, getString(R.string.status_disconnected));
     }
@@ -149,6 +159,19 @@ public class SettingsActivity extends AppCompatActivity implements
                 disconnectFromBackend();
             }
         });
+
+        productionModeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            serverConfig.setProductionMode(isChecked);
+            updateEnvLabel(isChecked);
+            // Actualizar el servicio en tiempo real
+            if (serviceBound && webSocketService != null) {
+                webSocketService.updateProductionMode(isChecked);
+            }
+        });
+    }
+
+    private void updateEnvLabel(boolean production) {
+        currentEnvLabel.setText(production ? R.string.settings_env_prod : R.string.settings_env_dev);
     }
 
     private void saveConfiguration() {

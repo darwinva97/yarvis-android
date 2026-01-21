@@ -37,6 +37,9 @@ public class YarvisWebSocketClient {
     private String password;
     private String agentName;
 
+    // Modo de producción
+    private boolean productionMode = false;
+
     // Sesión de conversación activa
     private String activeSessionId = null;
 
@@ -71,6 +74,20 @@ public class YarvisWebSocketClient {
     public void setCredentials(String password, String agentName) {
         this.password = password;
         this.agentName = agentName;
+    }
+
+    /**
+     * Establece el modo de producción.
+     */
+    public void setProductionMode(boolean production) {
+        this.productionMode = production;
+    }
+
+    /**
+     * Obtiene el modo de producción actual.
+     */
+    public boolean isProductionMode() {
+        return productionMode;
     }
 
     /**
@@ -150,9 +167,10 @@ public class YarvisWebSocketClient {
             return;
         }
         if (connection != null && connection.isConnected()) {
-            WebSocketMessage.VoiceCommand message = new WebSocketMessage.VoiceCommand(text, activeSessionId);
+            WebSocketMessage.VoiceCommand message = new WebSocketMessage.VoiceCommand(text, activeSessionId, productionMode);
             connection.send(message.toJson());
-            Log.d(TAG, "Sent voice command: " + text + (activeSessionId != null ? " [session: " + activeSessionId + "]" : ""));
+            String envLabel = productionMode ? "PROD" : "DEV";
+            Log.d(TAG, "Sent voice command [" + envLabel + "]: " + text + (activeSessionId != null ? " [session: " + activeSessionId + "]" : ""));
         } else {
             Log.w(TAG, "Cannot send voice command - not connected");
             notifyError("No hay conexión con el servidor");
@@ -170,9 +188,10 @@ public class YarvisWebSocketClient {
             return;
         }
         if (connection != null && connection.isConnected()) {
-            WebSocketMessage.ChatMessage message = new WebSocketMessage.ChatMessage(text, activeSessionId);
+            WebSocketMessage.ChatMessage message = new WebSocketMessage.ChatMessage(text, activeSessionId, productionMode);
             connection.send(message.toJson());
-            Log.d(TAG, "Sent chat message: " + text + (activeSessionId != null ? " [session: " + activeSessionId + "]" : ""));
+            String envLabel = productionMode ? "PROD" : "DEV";
+            Log.d(TAG, "Sent chat message [" + envLabel + "]: " + text + (activeSessionId != null ? " [session: " + activeSessionId + "]" : ""));
         } else {
             Log.w(TAG, "Cannot send chat message - not connected");
             notifyError("No hay conexión con el servidor");
@@ -189,9 +208,10 @@ public class YarvisWebSocketClient {
         }
         if (connection != null && connection.isConnected()) {
             WebSocketMessage.NotificationMessage message =
-                    new WebSocketMessage.NotificationMessage(app, title, text);
+                    new WebSocketMessage.NotificationMessage(app, title, text, productionMode);
             connection.send(message.toJson());
-            Log.d(TAG, "Sent notification: " + app + " - " + title);
+            String envLabel = productionMode ? "PROD" : "DEV";
+            Log.d(TAG, "Sent notification [" + envLabel + "]: " + app + " - " + title);
         }
     }
 

@@ -12,7 +12,7 @@ import { MockWorkflowClient } from './mock-workflow.js';
 // Instanciar servicios
 const workflow = config.mockMode
   ? new MockWorkflowClient(config.mockDelay)
-  : new WorkflowClient(config.workflowWebhookUrl, config.workflowTimeout);
+  : new WorkflowClient(config.workflowDev, config.workflowProd, config.workflowTimeout);
 
 const sessions = new SessionManager(config.sessionTimeout);
 
@@ -30,18 +30,22 @@ startSessionCleanup(sessions);
 // Iniciar servidor
 server.listen(config.port, () => {
   const modeLabel = config.mockMode ? '🧪 MOCK MODE' : '🔗 LIVE MODE';
-  const workflowInfo = config.mockMode
-    ? `Mock (delay: ${config.mockDelay}ms)`.padEnd(40)
-    : config.workflowWebhookUrl.substring(0, 40).padEnd(40);
+  const devInfo = config.mockMode
+    ? `Mock (delay: ${config.mockDelay}ms)`
+    : config.workflowDev.url.substring(0, 38);
+  const prodInfo = config.mockMode
+    ? 'N/A'
+    : config.workflowProd.url.substring(0, 38);
 
   console.log(`
 ╔══════════════════════════════════════════════════════╗
-║              Yarvis Backend v1.2.0                   ║
+║              Yarvis Backend v1.3.0                   ║
 ║                  ${modeLabel.padEnd(34)}║
 ╠══════════════════════════════════════════════════════╣
 ║  HTTP:       http://localhost:${config.port}                    ║
 ║  WebSocket:  ws://localhost:${config.port}/ws                   ║
-║  Workflow:   ${workflowInfo}  ║
+║  Workflow DEV:  ${devInfo.padEnd(36)}║
+║  Workflow PROD: ${prodInfo.padEnd(36)}║
 ╠══════════════════════════════════════════════════════╣
 ║  API Endpoints:                                      ║
 ║    POST /api/speak          - Hacer hablar a Yarvis  ║

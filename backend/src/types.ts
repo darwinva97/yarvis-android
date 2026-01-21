@@ -16,9 +16,9 @@ export interface ConversationSession {
 // ==================== Mensajes del cliente (Android) al servidor ====================
 
 export type ClientMessage =
-  | { type: 'voice_command'; text: string; timestamp: number; sessionId?: string }
-  | { type: 'chat_message'; text: string; timestamp: number; sessionId?: string }  // Mensaje de chat escrito
-  | { type: 'notification'; app: string; title: string; text: string }
+  | { type: 'voice_command'; text: string; timestamp: number; sessionId?: string; production?: boolean }
+  | { type: 'chat_message'; text: string; timestamp: number; sessionId?: string; production?: boolean }  // Mensaje de chat escrito
+  | { type: 'notification'; app: string; title: string; text: string; production?: boolean }
   | { type: 'end_conversation'; sessionId: string; reason?: string }
   | { type: 'ping' }
   | { type: 'auth'; password: string; agentName?: string }
@@ -165,9 +165,16 @@ export interface ChangePasswordResponse {
 
 // ==================== Configuración del servidor ====================
 
+export interface WorkflowEndpointConfig {
+  url: string;
+  username: string;
+  password: string;
+}
+
 export interface ServerConfig {
   port: number;
-  workflowWebhookUrl: string;
+  workflowDev: WorkflowEndpointConfig;   // Configuración de workflow de desarrollo
+  workflowProd: WorkflowEndpointConfig;  // Configuración de workflow de producción
   workflowTimeout: number;
   sessionTimeout: number;      // Timeout de inactividad en ms
   mockMode: boolean;           // Usar cliente mock en lugar de webhook real
