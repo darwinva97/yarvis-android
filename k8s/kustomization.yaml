@@ -6,7 +6,7 @@ namespace: yarvis
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.yaml
+  # - secret.yaml  # Excluido: los secretos se manejan en repo privado
   - deployment.yaml
   - service.yaml
   - ingress.yaml
