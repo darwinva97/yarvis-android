@@ -9,7 +9,7 @@ resources:
   # - secret.yaml  # Excluido: los secretos se manejan en repo privado
   - deployment.yaml
   - service.yaml
-  - ingress.yaml
+  # - ingress.yaml  # Excluido: el ingress se maneja en repo privado (dominio real)
 
 commonLabels:
   app.kubernetes.io/name: yarvis
