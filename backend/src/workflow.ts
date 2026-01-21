@@ -127,6 +127,7 @@ export class WorkflowClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        console.error(`[Workflow] ${envLabel} responded with status ${response.status}`);
         return {
           success: false,
           error: `Workflow [${envLabel}] responded with status ${response.status}`,
