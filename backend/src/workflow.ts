@@ -114,6 +114,7 @@ export class WorkflowClient {
       }
 
       console.log(`[Workflow] Sending to ${envLabel}: ${endpointConfig.url}`);
+      console.log(`[Workflow] Payload: ${JSON.stringify(payload)}`);
 
       const response = await fetch(endpointConfig.url, {
         method: 'POST',
