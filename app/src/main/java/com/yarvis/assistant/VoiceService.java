@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ServiceInfo;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Binder;
@@ -79,6 +80,11 @@ public class VoiceService extends Service implements
     private Intent recognizerIntent;
     private Handler mainHandler;
     private boolean isListening = false;
+
+    // AudioManager para silenciar los beeps del SpeechRecognizer
+    private AudioManager audioManager;
+    private int originalMediaVolume;
+    private boolean isAudioMuted = false;
 
     // Text-to-Speech
     private TextToSpeech tts;
@@ -188,6 +194,7 @@ public class VoiceService extends Service implements
         mainHandler = new Handler(Looper.getMainLooper());
         serverConfig = new ServerConfig(this);
         chatHistoryManager = ChatHistoryManager.getInstance(this);
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         createNotificationChannel();
         initializeTTS();
         registerNotificationReceiver();
